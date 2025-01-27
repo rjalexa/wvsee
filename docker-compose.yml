@@ -1,0 +1,26 @@
+services:
+  wveye:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Map a free external port 3200 to the container's internal 3000 port
+    ports:
+      - "3200:3000"
+    environment:
+      - NODE_ENV=production
+      - WEAVIATE_HOST=weaviate
+      - PORT=3000
+    command: ["node", "server.js"]
+    networks:
+      - mema_docker_compose_weaviate_net # name of the docker network where weaviate docker lives
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+networks:
+  mema_docker_compose_weaviate_net # name of the docker network where weaviate docker lives
+    external: true
