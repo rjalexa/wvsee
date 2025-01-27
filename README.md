@@ -84,7 +84,7 @@ The application needs to know where your Weaviate instance is running:
 - **Docker Deployment**: Configure via `docker-compose.yml`
   ```yaml
   environment:
-    - WEAVIATE_HOST=weaviate
+    - WEAVIATE_HOST=http://weaviate:8080
   ```
   Note: When running in Docker, make sure to customize the hostname and network settings in docker-compose.yml to match your Weaviate setup.
 
