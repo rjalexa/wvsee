@@ -124,14 +124,13 @@ type WeaviateCollection = {
   properties: string[];
 };
 
-import getConfig from 'next/config';
-
-const { serverRuntimeConfig, publicRuntimeConfig } = getConfig();
-// Use serverRuntimeConfig in server components, fallback to publicRuntimeConfig for client components
-const WEAVIATE_URL = serverRuntimeConfig?.weaviateUrl || publicRuntimeConfig?.weaviateUrl;
+// In client components, process.env will be replaced with the value at build time
+// In server components, process.env will be the runtime value
+const WEAVIATE_URL = process.env.WEAVIATE_URL;
 
 if (!WEAVIATE_URL) {
-  throw new Error('Weaviate URL is not configured');
+  console.error('WEAVIATE_URL is not configured');
+  throw new Error('Weaviate URL is not configured. Please check your environment variables.');
 }
 
 /**
