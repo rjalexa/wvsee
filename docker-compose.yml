@@ -22,5 +22,5 @@ services:
       start_period: 5s
 
 networks:
-  mema_docker_compose_weaviate_net # name of the docker network where weaviate docker lives
+  mema_docker_compose_weaviate_net: # name of the docker network where weaviate docker lives
     external: true
