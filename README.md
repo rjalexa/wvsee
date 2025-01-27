@@ -52,7 +52,7 @@ services:
       - "3200:3000"
     environment:
       - NODE_ENV=production
-      - WEAVIATE_HOST=weaviate
+      - WEAVIATE_HOST=http://weaviate:8080
       - PORT=3000
     networks:
       - weaviate_net
