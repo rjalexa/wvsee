@@ -21,7 +21,14 @@ const columns = [
   }),
   columnHelper.accessor('editionDateIsoStr', {
     header: 'Date',
-    cell: info => info.getValue().split('T')[0].split('-').reverse().join('-'),
+    cell: info => {
+      const date = new Date(info.getValue());
+      return new Intl.DateTimeFormat('en-GB', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(date);
+    },
   }),
   columnHelper.accessor('captionStr', {
     header: 'Caption',
