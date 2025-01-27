@@ -8,7 +8,7 @@ services:
       - "3200:3000"
     environment:
       - NODE_ENV=production
-      - WEAVIATE_HOST=weaviate
+      - WEAVIATE_URL=http://weaviate:8080
       - PORT=3000
     command: ["node", "server.js"]
     networks:
