@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { CollectionsList } from '@/components/CollectionsList';
-import { CollectionInfo, getCollections } from '@/lib/weaviate';
+import { CollectionInfo } from '@/lib/weaviate';
 
 export default function Home() {
   const [collections, setCollections] = useState<CollectionInfo[]>([]);
@@ -13,13 +13,19 @@ export default function Home() {
     async function fetchCollections() {
       try {
         setLoading(true);
-        console.log('Initializing connection to Weaviate...');
-        const result = await getCollections();
-        console.log('Successfully connected to Weaviate and fetched collections');
-        setCollections(result);
+        console.log('Fetching collections from API...');
+        const response = await fetch('/api/collections');
+        const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(result.details || result.error || 'Failed to fetch collections');
+        }
+
+        console.log('Successfully fetched collections');
+        setCollections(result.collections);
         setError(null);
       } catch (err) {
-        console.error('Failed to connect to Weaviate:', {
+        console.error('Failed to fetch collections:', {
           error: err instanceof Error ? {
             name: err.name,
             message: err.message,
@@ -38,7 +44,7 @@ export default function Home() {
   return (
     <main className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold">
-        Weaviate collections <span className="font-normal text-gray-500">on localhost:8080</span>
+        Weaviate collections
       </h1>
       
       {error && (
