@@ -2,8 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  publicRuntimeConfig: {
-    weaviateUrl: process.env.WEAVIATE_URL || 'http://localhost:8080'
+  env: {
+    WEAVIATE_URL: process.env.WEAVIATE_URL || 'http://localhost:8080'
   }
 };
 

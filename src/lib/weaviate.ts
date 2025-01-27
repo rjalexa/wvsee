@@ -124,10 +124,7 @@ type WeaviateCollection = {
   properties: string[];
 };
 
-import getConfig from 'next/config';
-
-const { publicRuntimeConfig } = getConfig();
-const WEAVIATE_URL = publicRuntimeConfig.weaviateUrl;
+const WEAVIATE_URL = process.env.WEAVIATE_URL;
 
 /**
  * Executes a GraphQL query against Weaviate’s /v1/graphql endpoint.
