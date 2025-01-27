@@ -22,12 +22,24 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
       try {
         setLoading(true);
         const response = await fetch(`/api/collection/${collectionName}`);
-        if (!response.ok) throw new Error('Failed to fetch data');
-        
         const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(result.details || result.error || 'Failed to fetch data');
+        }
+        
         setData(result.data);
         setError(null);
       } catch (err) {
+        console.error('Error in CollectionView:', {
+          collectionName,
+          error: err instanceof Error ? {
+            name: err.name,
+            message: err.message,
+            cause: err.cause,
+            stack: err.stack
+          } : err
+        });
         setError(err instanceof Error ? err.message : 'Failed to fetch data');
       } finally {
         setLoading(false);
