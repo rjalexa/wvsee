@@ -124,7 +124,15 @@ type WeaviateCollection = {
   properties: string[];
 };
 
-const WEAVIATE_URL = process.env.WEAVIATE_URL;
+import getConfig from 'next/config';
+
+const { serverRuntimeConfig, publicRuntimeConfig } = getConfig();
+// Use serverRuntimeConfig in server components, fallback to publicRuntimeConfig for client components
+const WEAVIATE_URL = serverRuntimeConfig?.weaviateUrl || publicRuntimeConfig?.weaviateUrl;
+
+if (!WEAVIATE_URL) {
+  throw new Error('Weaviate URL is not configured');
+}
 
 /**
  * Executes a GraphQL query against Weaviate’s /v1/graphql endpoint.

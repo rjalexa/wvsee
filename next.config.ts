@@ -1,9 +1,15 @@
 import type { NextConfig } from "next";
 
+const weaviateUrl = process.env.WEAVIATE_URL || 'http://localhost:8080';
+console.log('Next.js config - Using Weaviate URL:', weaviateUrl);
+
 const nextConfig: NextConfig = {
   output: 'standalone',
-  env: {
-    WEAVIATE_URL: process.env.WEAVIATE_URL || 'http://localhost:8080'
+  serverRuntimeConfig: {
+    weaviateUrl
+  },
+  publicRuntimeConfig: {
+    weaviateUrl
   }
 };
 
