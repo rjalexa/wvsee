@@ -110,7 +110,6 @@ export function CollectionsList({ collections }: CollectionsListProps) {
                     'bg-gray-100 text-gray-800'
                   }`}
                   title={`${prop.description ? `${prop.description}\n` : ''}Type: ${prop.dataType ? prop.dataType.join(', ') : 'unknown'}`}
-                  style={{ transition: 'opacity 0.1s' }}
                 >
                   {prop.name}
                 </span>
