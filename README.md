@@ -1,102 +1,145 @@
-# Copertine Viewer
+# Weaviate Collections Explorer
 
-A web application for viewing and managing Weaviate collections.
+A simple web interface to explore your local Weaviate collections and inspect the data they hold. Built with Next.js 14 and TypeScript, this tool provides an easy way to browse and view your Weaviate data collections.
 
-## Development Setup
+## Features
+- View all locally available Weaviate collections
+- Explore collection data in a tabular format
+- Dynamic table rendering based on collection schema
+- Real-time data fetching from your Weaviate instance
 
-### Local Development
+## Installation & Setup
 
-The repository includes a `.env` file configured for local development:
+### Running on Host
+
+1. Install dependencies:
+```bash
+pnpm install
 ```
+
+2. Configure Weaviate host in `.env`:
+```env
 WEAVIATE_HOST=localhost:8080
 ```
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+3. Start the development server:
+```bash
+pnpm dev
+```
 
-2. Start the development server:
-   ```bash
-   npm run dev
-   ```
+The application will be available at http://localhost:3000
 
-The application will be available at http://localhost:3000 and will automatically connect to your local Weaviate instance at http://localhost:8080.
+### Running with Docker
 
-## Production Deployment
+1. Prerequisites:
+   - Docker and Docker Compose installed
+   - A running Weaviate instance in Docker
+   - A Docker network for Weaviate communication
 
-### Prerequisites
+2. Configure `docker-compose.yml`:
+   - Update the network name to match your Weaviate network
+   - Adjust the Weaviate hostname if needed
+   - Modify port mapping if required (default: 3200:3000)
 
-- Docker and Docker Compose installed
-- A running Weaviate instance in Docker with a network named `weaviate-network`
-
-For example, if your Weaviate is running with this docker-compose.yml:
+Example docker-compose.yml configuration:
 ```yaml
-version: '3.8'
 services:
-  weaviate:
-    image: semitechnologies/weaviate:latest
+  copertine-viewer:
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      - "3200:3000"
+    environment:
+      - NODE_ENV=production
+      - WEAVIATE_HOST=weaviate
+      - PORT=3000
     networks:
-      - weaviate-network
-    # ... other Weaviate configuration ...
+      - weaviate_net
 
 networks:
-  weaviate-network:
-    name: weaviate-network
+  weaviate_net:
+    external: true
 ```
 
-### Deployment Steps
-
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd copertine-viewer
-   ```
-
-2. Build and start the application:
-   ```bash
-   docker compose up -d
-   ```
-
-This will:
-- Build the application in production mode
-- Connect to the existing `weaviate-network`
-- Use the Weaviate service name as host (`weaviate:8080`)
-- Make the application available at http://localhost:3000
-
-### Environment Configuration
-
-The application uses the following environment variables:
-- `WEAVIATE_HOST`: The Weaviate host (defaults to `localhost:8080` in development, `weaviate` in Docker)
-- `NODE_ENV`: The Node.js environment (`development` or `production`)
-- `PORT`: The port to run the application on (defaults to 3000)
-
-### Docker Networks
-
-The application is configured to work with a Weaviate instance running in Docker:
-
-- In development, it connects to your local Weaviate instance at `localhost:8080`
-- In production, it connects to the Weaviate service through Docker's internal network (`weaviate-network`)
-
-Make sure your Weaviate container is running and accessible through the `weaviate-network` before deploying the application.
-
-### Health Checks
-
-The application includes Docker health checks that verify its availability. You can monitor the health status with:
+3. Build and run:
 ```bash
-docker compose ps
+docker compose build
+docker compose up -d
 ```
 
-### Troubleshooting
+The application will be available at http://localhost:3200
+
+## Configuration
+
+### Weaviate Host Configuration
+
+The application needs to know where your Weaviate instance is running:
+
+- **Local Development**: Configure via `.env` file
+  ```env
+  WEAVIATE_HOST=localhost:8080
+  ```
+
+- **Docker Deployment**: Configure via `docker-compose.yml`
+  ```yaml
+  environment:
+    - WEAVIATE_HOST=weaviate
+  ```
+  Note: When running in Docker, make sure to customize the hostname and network settings in docker-compose.yml to match your Weaviate setup.
+
+## Contributing
+
+Contributions are welcome through pull requests! This is a learning project for Next.js 14 with TypeScript, so suggestions for improvements and best practices are especially appreciated.
+
+## Important Notes
+
+### Learning Project Disclaimer
+This is a learning project for Next.js 14 with TypeScript. While functional, the code may not follow all best practices for a Next.js 14 TypeScript project. Suggestions and improvements are welcome!
+
+### ⚠️ Data Safety Warning
+**USE AT YOUR OWN RISK**: While this tool is designed for viewing data, any interaction with your Weaviate collections carries inherent risks. There's always a possibility of unintended data modification or loss due to unknown bugs. Please ensure you have proper backups of your Weaviate data before using this tool.
+
+## Technical Details
+
+- Built with Next.js 14
+- Written in TypeScript
+- Uses TanStack Table for data display
+- Styled with Tailwind CSS
+- Weaviate TypeScript client for data access
+
+## Troubleshooting
 
 1. If you can't connect to Weaviate:
-   - Check if Weaviate is running: `docker ps`
-   - Verify network connectivity: `docker network inspect weaviate-network`
-   - Check Weaviate logs: `docker logs <weaviate-container-id>`
+   - Verify Weaviate is running
+   - Check network configuration
+   - Ensure correct hostname in configuration
 
-2. If the application isn't starting:
-   - Check application logs: `docker compose logs -f copertine-viewer`
-   - Verify environment variables: `docker compose config`
-   - Check if ports are available: `netstat -an | grep 3000`
+2. For Docker deployments:
+   - Verify network connectivity: `docker network inspect weaviate_net`
+   - Check logs: `docker compose logs -f`
+   - Ensure Weaviate service is accessible from the container network
+
+## License
+
+MIT License
+
+Copyright (c) 2024 rjalexa
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
