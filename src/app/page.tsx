@@ -13,10 +13,20 @@ export default function Home() {
     async function fetchCollections() {
       try {
         setLoading(true);
+        console.log('Initializing connection to Weaviate...');
         const result = await getCollections();
+        console.log('Successfully connected to Weaviate and fetched collections');
         setCollections(result);
         setError(null);
       } catch (err) {
+        console.error('Failed to connect to Weaviate:', {
+          error: err instanceof Error ? {
+            name: err.name,
+            message: err.message,
+            cause: err.cause,
+            stack: err.stack
+          } : err
+        });
         setError(err instanceof Error ? err.message : 'Failed to fetch collections');
       } finally {
         setLoading(false);

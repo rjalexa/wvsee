@@ -130,19 +130,34 @@ const WEAVIATE_URL = process.env.WEAVIATE_URL;
  * Executes a GraphQL query against Weaviate’s /v1/graphql endpoint.
  */
 export async function executeQuery(queryStr: string): Promise<WeaviateResponse> {
-  const response = await fetch(`${WEAVIATE_URL}/v1/graphql`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ query: queryStr }),
-  });
+  console.log(`Attempting to connect to Weaviate at: ${WEAVIATE_URL}`);
+  try {
+    const response = await fetch(`${WEAVIATE_URL}/v1/graphql`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query: queryStr }),
+    });
 
-  if (!response.ok) {
-    throw new Error(`Query failed: ${response.statusText}`);
+    if (!response.ok) {
+      console.error(`Weaviate query failed with status: ${response.status} ${response.statusText}`);
+      throw new Error(`Query failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Detailed Weaviate connection error:', {
+      url: WEAVIATE_URL,
+      error: error instanceof Error ? {
+        name: error.name,
+        message: error.message,
+        cause: error.cause,
+        stack: error.stack
+      } : error
+    });
+    throw error;
   }
-
-  return response.json();
 }
 
 /**
@@ -171,48 +186,79 @@ export async function getObjectsByClass(className: string): Promise<CollectionDa
  * then for each class, retrieves the total count of objects in it.
  */
 export async function getCollections(): Promise<CollectionInfo[]> {
-  const response = await fetch(`${WEAVIATE_URL}/v1/schema`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch schema');
-  }
+  console.log(`Fetching schema from Weaviate at: ${WEAVIATE_URL}`);
+  try {
+    const response = await fetch(`${WEAVIATE_URL}/v1/schema`);
+    if (!response.ok) {
+      console.error(`Failed to fetch schema. Status: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to fetch schema: ${response.statusText}`);
+    }
 
-  // Parse as Weaviate schema
-  const schema: WeaviateSchemaResponse = await response.json();
-  const classes = schema.classes ?? [];
+    // Parse as Weaviate schema
+    const schema: WeaviateSchemaResponse = await response.json();
+    const classes = schema.classes ?? [];
 
-  const result: CollectionInfo[] = [];
-  for (const weavClass of classes) {
-    const count = await getObjectCount(weavClass.class);
-    result.push({
-      name: weavClass.class,
-      description: weavClass.description,
-      count,
-      properties: weavClass.properties?.map((p) => ({
-        name: p.name,
-      })) ?? [],
+    const result: CollectionInfo[] = [];
+    for (const weavClass of classes) {
+      const count = await getObjectCount(weavClass.class);
+      result.push({
+        name: weavClass.class,
+        description: weavClass.description,
+        count,
+        properties: weavClass.properties?.map((p) => ({
+          name: p.name,
+        })) ?? [],
+      });
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error fetching collections:', {
+      url: WEAVIATE_URL,
+      error: error instanceof Error ? {
+        name: error.name,
+        message: error.message,
+        cause: error.cause,
+        stack: error.stack
+      } : error
     });
+    throw error;
   }
-
-  return result;
 }
 
 /**
  * Executes a GraphQL aggregate query (COUNT, etc.) for a given class name.
  */
 async function executeAggregateQuery(queryStr: string): Promise<AggregateResponse> {
-  const response = await fetch(`${WEAVIATE_URL}/v1/graphql`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ query: queryStr }),
-  });
+  console.log(`Executing aggregate query to Weaviate at: ${WEAVIATE_URL}`);
+  try {
+    const response = await fetch(`${WEAVIATE_URL}/v1/graphql`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query: queryStr }),
+    });
 
-  if (!response.ok) {
-    throw new Error(`Query failed: ${response.statusText}`);
+    if (!response.ok) {
+      console.error(`Aggregate query failed with status: ${response.status} ${response.statusText}`);
+      throw new Error(`Query failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Detailed aggregate query error:', {
+      url: WEAVIATE_URL,
+      query: queryStr,
+      error: error instanceof Error ? {
+        name: error.name,
+        message: error.message,
+        cause: error.cause,
+        stack: error.stack
+      } : error
+    });
+    throw error;
   }
-
-  return response.json();
 }
 
 /**
