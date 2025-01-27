@@ -11,6 +11,11 @@ RUN npm install -g pnpm && pnpm install --frozen-lockfile
 
 # Copy source
 COPY . .
+
+# Set build-time environment variables
+ARG WEAVIATE_URL=http://weaviate:8080
+ENV WEAVIATE_URL=${WEAVIATE_URL}
+
 # Build application
 RUN pnpm run build
 

@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - WEAVIATE_URL=http://weaviate:8080
     # Map a free external port 3200 to the container's internal 3000 port
     ports:
       - "3200:3000"

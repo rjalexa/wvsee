@@ -1,15 +1,18 @@
 import type { NextConfig } from "next";
 
-const weaviateUrl = process.env.WEAVIATE_URL || 'http://localhost:8080';
-console.log('Next.js config - Using Weaviate URL:', weaviateUrl);
+if (!process.env.WEAVIATE_URL) {
+  throw new Error('WEAVIATE_URL environment variable is required');
+}
+
+console.log('Next.js config - Using Weaviate URL:', process.env.WEAVIATE_URL);
 
 const nextConfig: NextConfig = {
   output: 'standalone',
   serverRuntimeConfig: {
-    weaviateUrl
+    weaviateUrl: process.env.WEAVIATE_URL
   },
   publicRuntimeConfig: {
-    weaviateUrl
+    weaviateUrl: process.env.WEAVIATE_URL
   }
 };
 
