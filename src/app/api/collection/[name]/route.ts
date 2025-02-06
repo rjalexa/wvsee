@@ -31,7 +31,7 @@ export async function GET(
      name,
      collectionInfo.properties.map((prop) => ({
        name: prop.name,
-       dataType: 'string'
+       dataType: prop.dataType || ['string']
      }))
    );
 

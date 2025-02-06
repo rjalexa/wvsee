@@ -67,6 +67,7 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
   const columns: ColumnDef[] = properties.map((prop) => ({
     key: prop.name,
     label: prop.name,
+    dataType: prop.dataType,
     render: (value: unknown) => {
       if (Array.isArray(value)) {
         return value.join(', ');
