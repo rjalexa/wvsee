@@ -3,6 +3,7 @@ import React from 'react';
 export type ColumnDef = {
   key: string;
   label: string;
+  dataType?: string[];
   render?: (value: unknown) => React.ReactNode;
 };
 
@@ -52,9 +53,13 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
               <th
                 key={column.key}
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider group relative"
+                title={column.dataType ? column.dataType.join(', ') : 'unknown'}
               >
                 {column.label}
+                <span className="invisible group-hover:visible absolute -bottom-6 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap">
+                  Type: {column.dataType ? column.dataType[0] : 'unknown'}
+                </span>
               </th>
             ))}
           </tr>

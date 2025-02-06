@@ -1,4 +1,4 @@
-export async function getCollectionData(className: string, properties: { name: string; dataType: string }[]): Promise<CollectionData[]> {
+export async function getCollectionData(className: string, properties: { name: string; dataType: string | string[] }[]): Promise<CollectionData[]> {
   try {
     const query = `{
       Get {
@@ -97,6 +97,8 @@ type WeaviateClass = {
   description?: string;
   properties?: {
     name: string;
+    dataType: string[];
+    description?: string;
   }[];
 };
 
@@ -214,6 +216,8 @@ export async function getCollections(): Promise<CollectionInfo[]> {
         count,
         properties: weavClass.properties?.map((p) => ({
           name: p.name,
+          dataType: p.dataType,
+          description: p.description
         })) ?? [],
       });
     }
