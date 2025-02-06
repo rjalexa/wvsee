@@ -111,6 +111,10 @@ type WeaviateCollection = {
 
 const WEAVIATE_URL = process.env.WEAVIATE_URL;
 
+export function getWeaviateUrl(): string {
+  return WEAVIATE_URL || 'URL not configured';
+}
+
 if (!WEAVIATE_URL) {
   console.error('WEAVIATE_URL is not configured');
   throw new Error('Weaviate URL is not configured. Please check your environment variables.');

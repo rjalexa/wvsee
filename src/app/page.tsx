@@ -1,26 +1,30 @@
-import { getCollections } from '@/lib/weaviate';
+import { getCollections, getWeaviateUrl } from '@/lib/weaviate';
 import { CollectionsWrapper } from '@/components/CollectionsWrapper';
 import { Suspense } from 'react';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default async function Home() {
+async function getInitialCollections() {
   const collections = await getCollections();
+  return collections;
+}
 
+export default async function Home() {
   return (
     <main className="py-8">
       <div className="max-w-5xl mx-auto px-4">
-        <h1 className="text-3xl font-bold mb-8">
-        Weaviate collections
-        </h1>
-        
-        <Suspense fallback={
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">
+            Weaviate collections
+          </h1>
+          <p className="text-sm text-gray-500 mt-2">
+            Connected to: {getWeaviateUrl()}
+          </p>
         </div>
-      }>
-        <CollectionsWrapper initialCollections={collections} />
+        
+        <Suspense>
+          <CollectionsWrapper initialCollections={await getInitialCollections()} />
         </Suspense>
       </div>
     </main>
