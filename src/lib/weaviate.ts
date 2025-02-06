@@ -7,6 +7,8 @@ export async function getCollectionData(className: string, properties: { name: s
         }
       }
     }`;
+    console.log(`\n*** Collection: ${className}`);
+    console.log(`\tFetching data`);
     const response = await executeQuery(query);
     
     if (!response?.data?.Get) {
@@ -15,7 +17,7 @@ export async function getCollectionData(className: string, properties: { name: s
     
     return response.data.Get[className] || [];
   } catch (error) {
-    console.error('Error in getCollectionData:', error);
+    console.error(`Error fetching data for collection "${className}":`, error);
     throw error;
   }
 }
@@ -29,6 +31,31 @@ export interface CollectionInfo {
     description?: string;
     dataType?: string[];
   }[];
+}
+
+export async function deleteCollection(className: string): Promise<void> {
+  console.log(`\n*** Collection: ${className}`);
+  console.log(`\tDeleting collection`);
+  try {
+    const response = await fetch(`${WEAVIATE_URL}/v1/schema/${className}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      console.error(`Failed to delete collection "${className}". Status: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to delete collection: ${response.statusText}`);
+    }
+  } catch (error) {
+    console.error(`Error deleting collection "${className}":`, {
+      error: error instanceof Error ? {
+        name: error.name,
+        message: error.message,
+        cause: error.cause,
+        stack: error.stack
+      } : error
+    });
+    throw error;
+  }
 }
 
 export type { WeaviateCollection };
@@ -49,49 +76,18 @@ export interface Copertine {
  */
 export type CollectionData = Record<string, unknown>;
 
-/**
- * The shape of the GraphQL /v1/graphql "Get" query response.
- * Example:
- * {
- *   data: {
- *     Get: {
- *       Person: [{ name: "Alice" }, { name: "Bob" }]
- *     }
- *   }
- * }
- */
 type WeaviateResponse = {
   data: {
     Get: Record<string, CollectionData[]>;
   };
 };
 
-/**
- * The shape of the GraphQL /v1/graphql "Aggregate" query response.
- * Example:
- * {
- *   data: {
- *     Aggregate: {
- *       Person: [
- *         {
- *           meta: {
- *             count: 42
- *           }
- *         }
- *       ]
- *     }
- *   }
- * }
- */
 type AggregateResponse = {
   data: {
     Aggregate: Record<string, { meta: { count: number } }[]>;
   };
 };
 
-/**
- * The shape of a single Weaviate class in the /v1/schema response.
- */
 type WeaviateClass = {
   class: string;
   description?: string;
@@ -102,19 +98,6 @@ type WeaviateClass = {
   }[];
 };
 
-/**
- * The complete shape of the /v1/schema response.
- * Example:
- * {
- *   classes: [
- *     {
- *       class: "Person",
- *       description: "Holds Person data",
- *       properties: [{ name: "name" }, { name: "age" }]
- *     }
- *   ]
- * }
- */
 type WeaviateSchemaResponse = {
   classes?: WeaviateClass[];
 };
@@ -126,20 +109,18 @@ type WeaviateCollection = {
   properties: string[];
 };
 
-// In client components, process.env will be replaced with the value at build time
-// In server components, process.env will be the runtime value
 const WEAVIATE_URL = process.env.WEAVIATE_URL;
+
+export function getWeaviateUrl(): string {
+  return WEAVIATE_URL || 'URL not configured';
+}
 
 if (!WEAVIATE_URL) {
   console.error('WEAVIATE_URL is not configured');
   throw new Error('Weaviate URL is not configured. Please check your environment variables.');
 }
 
-/**
- * Executes a GraphQL query against Weaviate’s /v1/graphql endpoint.
- */
 export async function executeQuery(queryStr: string): Promise<WeaviateResponse> {
-  console.log(`Attempting to connect to Weaviate at: ${WEAVIATE_URL}`);
   try {
     const response = await fetch(`${WEAVIATE_URL}/v1/graphql`, {
       method: 'POST',
@@ -150,13 +131,13 @@ export async function executeQuery(queryStr: string): Promise<WeaviateResponse> 
     });
 
     if (!response.ok) {
-      console.error(`Weaviate query failed with status: ${response.status} ${response.statusText}`);
+      console.error(`GraphQL query failed with status: ${response.status} ${response.statusText}`);
       throw new Error(`Query failed: ${response.statusText}`);
     }
 
     return response.json();
   } catch (error) {
-    console.error('Detailed Weaviate connection error:', {
+    console.error('GraphQL query error:', {
       url: WEAVIATE_URL,
       error: error instanceof Error ? {
         name: error.name,
@@ -169,11 +150,9 @@ export async function executeQuery(queryStr: string): Promise<WeaviateResponse> 
   }
 }
 
-/**
- * Returns objects of a given Weaviate class by making a GraphQL query
- * for the `_additional { id }` field. Modify as needed for other fields.
- */
 export async function getObjectsByClass(className: string): Promise<CollectionData[]> {
+  console.log(`\n*** Collection: ${className}`);
+  console.log(`\tFetching objects`);
   const query = `
   {
     Get {
@@ -190,12 +169,8 @@ export async function getObjectsByClass(className: string): Promise<CollectionDa
   return results;
 }
 
-/**
- * Fetches the list of classes (collections) from Weaviate’s /v1/schema,
- * then for each class, retrieves the total count of objects in it.
- */
 export async function getCollections(): Promise<CollectionInfo[]> {
-  console.log(`Fetching schema from Weaviate at: ${WEAVIATE_URL}`);
+  console.log(`Connected to Weaviate at: ${WEAVIATE_URL}`);
   try {
     const response = await fetch(`${WEAVIATE_URL}/v1/schema`);
     if (!response.ok) {
@@ -203,13 +178,15 @@ export async function getCollections(): Promise<CollectionInfo[]> {
       throw new Error(`Failed to fetch schema: ${response.statusText}`);
     }
 
-    // Parse as Weaviate schema
     const schema: WeaviateSchemaResponse = await response.json();
     const classes = schema.classes ?? [];
 
     const result: CollectionInfo[] = [];
     for (const weavClass of classes) {
+      console.log(`\n*** Collection: ${weavClass.class}`);
+      console.log(`\tFetching object count`);
       const count = await getObjectCount(weavClass.class);
+      console.log(`\tFetching properties`);
       result.push({
         name: weavClass.class,
         description: weavClass.description,
@@ -237,11 +214,7 @@ export async function getCollections(): Promise<CollectionInfo[]> {
   }
 }
 
-/**
- * Executes a GraphQL aggregate query (COUNT, etc.) for a given class name.
- */
-async function executeAggregateQuery(queryStr: string): Promise<AggregateResponse> {
-  console.log(`Executing aggregate query to Weaviate at: ${WEAVIATE_URL}`);
+async function executeAggregateQuery(queryStr: string, className: string): Promise<AggregateResponse> {
   try {
     const response = await fetch(`${WEAVIATE_URL}/v1/graphql`, {
       method: 'POST',
@@ -252,15 +225,14 @@ async function executeAggregateQuery(queryStr: string): Promise<AggregateRespons
     });
 
     if (!response.ok) {
-      console.error(`Aggregate query failed with status: ${response.status} ${response.statusText}`);
+      console.error(`Query failed for collection "${className}". Status: ${response.status} ${response.statusText}`);
       throw new Error(`Query failed: ${response.statusText}`);
     }
 
     return response.json();
   } catch (error) {
-    console.error('Detailed aggregate query error:', {
+    console.error(`Query error for collection "${className}":`, {
       url: WEAVIATE_URL,
-      query: queryStr,
       error: error instanceof Error ? {
         name: error.name,
         message: error.message,
@@ -272,10 +244,6 @@ async function executeAggregateQuery(queryStr: string): Promise<AggregateRespons
   }
 }
 
-/**
- * Retrieves the total count of objects in a given class by using the
- * Weaviate “Aggregate” GraphQL query.
- */
 async function getObjectCount(className: string): Promise<number> {
   const aggregateQuery = `
   {
@@ -290,17 +258,14 @@ async function getObjectCount(className: string): Promise<number> {
 
   let aggregateResponse: AggregateResponse | null = null;
   try {
-    aggregateResponse = await executeAggregateQuery(aggregateQuery);
+    aggregateResponse = await executeAggregateQuery(aggregateQuery, className);
   } catch (error) {
-    console.error('Error executing aggregate query:', error);
-    // Optionally rethrow or return 0
+    console.error(`Error fetching count for collection "${className}":`, error);
     return 0;
   }
 
-  // Access the aggregated data
   const aggregateData =
     aggregateResponse?.data.Aggregate[className] ?? [];
 
-  // Return the count if available, or 0 otherwise
   return aggregateData[0]?.meta?.count ?? 0;
 }
