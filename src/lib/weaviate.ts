@@ -31,6 +31,31 @@ export interface CollectionInfo {
   }[];
 }
 
+export async function deleteCollection(className: string): Promise<void> {
+  console.log(`Attempting to delete collection ${className} from Weaviate at: ${WEAVIATE_URL}`);
+  try {
+    const response = await fetch(`${WEAVIATE_URL}/v1/schema/${className}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      console.error(`Failed to delete collection. Status: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to delete collection: ${response.statusText}`);
+    }
+  } catch (error) {
+    console.error('Error deleting collection:', {
+      className,
+      error: error instanceof Error ? {
+        name: error.name,
+        message: error.message,
+        cause: error.cause,
+        stack: error.stack
+      } : error
+    });
+    throw error;
+  }
+}
+
 export type { WeaviateCollection };
 
 export interface Copertine {
