@@ -17,9 +17,9 @@ A simple web interface to explore your local Weaviate collections and inspect th
 pnpm install
 ```
 
-2. Configure Weaviate host in `.env`:
+2. Configure Weaviate URL in `.env`:
 ```env
-WEAVIATE_HOST=localhost:8080
+WEAVIATE_URL=http://localhost:8080
 ```
 
 3. Start the development server:
@@ -52,7 +52,7 @@ services:
       - "3200:3000"
     environment:
       - NODE_ENV=production
-      - WEAVIATE_HOST=http://weaviate:8080
+      - WEAVIATE_URL=http://weaviate:8080
       - PORT=3000
     networks:
       - weaviate_net
@@ -78,13 +78,13 @@ The application needs to know where your Weaviate instance is running:
 
 - **Local Development**: Configure via `.env` file
   ```env
-  WEAVIATE_HOST=localhost:8080
+  WEAVIATE_URL=http://localhost:8080
   ```
 
 - **Docker Deployment**: Configure via `docker-compose.yml`
   ```yaml
   environment:
-    - WEAVIATE_HOST=http://weaviate:8080
+    - WEAVIATE_URL=http://weaviate:8080
   ```
   Note: When running in Docker, make sure to customize the hostname and network settings in docker-compose.yml to match your Weaviate setup.
 
