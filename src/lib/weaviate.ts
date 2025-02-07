@@ -1,12 +1,29 @@
-export async function getCollectionData(className: string, properties: { name: string; dataType: string | string[] }[]): Promise<CollectionData[]> {
+type SortConfig = {
+  property: string;
+  order: 'asc' | 'desc';
+} | null;
+
+export async function getCollectionData(
+  className: string, 
+  properties: { name: string; dataType: string | string[] }[],
+  sort?: SortConfig
+): Promise<CollectionData[]> {
   try {
+    const sortDirective = sort ? 
+      `sort: [{
+        path: ["${sort.property}"],
+        order: ${sort.order.toLowerCase()}
+      }]` : '';
+
     const query = `{
       Get {
-        ${className} {
+        ${className}${sortDirective ? `(${sortDirective})` : ''} {
           ${properties.map(p => p.name).join('\n')}
         }
       }
     }`;
+
+    console.log('Executing GraphQL query:', JSON.stringify({ query }, null, 2));
     console.log(`\n*** Collection: ${className}`);
     console.log(`\tFetching data`);
     const response = await executeQuery(query);
@@ -135,7 +152,9 @@ export async function executeQuery(queryStr: string): Promise<WeaviateResponse> 
       throw new Error(`Query failed: ${response.statusText}`);
     }
 
-    return response.json();
+    const result = await response.json();
+    console.log('GraphQL response:', JSON.stringify(result, null, 2));
+    return result;
   } catch (error) {
     console.error('GraphQL query error:', {
       url: WEAVIATE_URL,

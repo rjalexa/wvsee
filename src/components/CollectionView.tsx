@@ -17,36 +17,44 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
   const [data, setData] = useState<CollectionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/collection/${collectionName}`);
-        const result = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(result.details || result.error || 'Failed to fetch data');
-        }
-        
-        setData(result.data);
-        setError(null);
-      } catch (err) {
-        console.error('Error in CollectionView:', {
-          collectionName,
-          error: err instanceof Error ? {
-            name: err.name,
-            message: err.message,
-            cause: err.cause,
-            stack: err.stack
-          } : err
-        });
-        setError(err instanceof Error ? err.message : 'Failed to fetch data');
-      } finally {
-        setLoading(false);
+  const [sortConfig, setSortConfig] = useState<{ property: string; order: 'asc' | 'desc' } | null>(null);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const url = new URL(`/api/collection/${collectionName}`, window.location.origin);
+      if (sortConfig) {
+        url.searchParams.set('sortProperty', sortConfig.property);
+        url.searchParams.set('sortOrder', sortConfig.order);
       }
+      const response = await fetch(url);
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.details || result.error || 'Failed to fetch data');
+      }
+      
+      setData(result.data);
+      setError(null);
+    } catch (err) {
+      console.error('Error in CollectionView:', {
+        collectionName,
+        error: err instanceof Error ? {
+          name: err.name,
+          message: err.message,
+          cause: err.cause,
+          stack: err.stack
+        } : err
+      });
+      setError(err instanceof Error ? err.message : 'Failed to fetch data');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     fetchData();
-  }, [collectionName]);
+  }, [collectionName, sortConfig]); // Re-fetch when sort changes
 
   if (error) {
     return (
@@ -76,5 +84,30 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
     },
   }));
 
-  return <DynamicTable data={data} columns={columns} />;
+  const handleSort = (columnKey: string) => {
+    const column = columns.find(col => col.key === columnKey);
+    if (!column?.dataType?.includes('date')) return;
+
+    setSortConfig(current => {
+      if (current?.property === columnKey) {
+        if (current.order === 'asc') {
+          return { property: columnKey, order: 'desc' };
+        }
+        return null;
+      }
+      return { property: columnKey, order: 'asc' };
+    });
+  };
+
+  return (
+    <DynamicTable 
+      data={data} 
+      columns={columns} 
+      onSort={handleSort}
+      sortConfig={sortConfig ? { 
+        key: sortConfig.property, 
+        direction: sortConfig.order 
+      } : null}
+    />
+  );
 }
