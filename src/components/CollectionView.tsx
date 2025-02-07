@@ -153,12 +153,12 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
 
     setSortConfig(current => {
       if (current?.property === columnKey) {
-        if (current.order === 'asc') {
-          return { property: columnKey, order: 'desc' };
+        if (current.order === 'desc') {
+          return { property: columnKey, order: 'asc' };
         }
         return null;
       }
-      return { property: columnKey, order: 'asc' };
+      return { property: columnKey, order: 'desc' }; // First click sorts descending
     });
   };
 

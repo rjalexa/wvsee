@@ -54,7 +54,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
     }
 
     if (sortConfig?.key !== columnKey) {
-      return <span className="ml-1 text-gray-400">↕</span>;
+      return <span className="ml-1 text-gray-400">↓</span>; // Show descending arrow as default
     }
     return sortConfig.direction === 'asc' ? 
       <span className="ml-1">↑</span> : 
