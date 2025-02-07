@@ -33,8 +33,8 @@ export default async function Page(props: PageProps) {
 
     const formattedProperties = collectionInfo.properties.map(prop => ({
       name: prop.name,
-      dataType: ['string'],
-      description: undefined
+      dataType: prop.dataType || ['string'],
+      description: prop.description
     }));
 
     return (

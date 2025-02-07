@@ -33,34 +33,37 @@ export async function DELETE(
  }
 }
 
-export async function GET(
- request: NextRequest,
-) {
- try {
-   console.log('API Route - Processing request for collection data');
-   const name = request.url.split('/').pop();
-   if (!name) {
-     console.log('API Route - Missing collection name in URL');
-     return NextResponse.json({ error: 'Collection name is required' }, { status: 400 });
-   }
+export async function GET(request: NextRequest) {
+  try {
+    console.log('API Route - Processing request for collection data');
+    const url = new URL(request.url);
+    const name = url.pathname.split('/').pop();
+    const sortProperty = url.searchParams.get('sortProperty');
+    const sortOrder = url.searchParams.get('sortOrder') as 'asc' | 'desc' | null;
 
-   console.log(`API Route - Fetching collections for: ${name}`);
-   const collections = await getCollections();
-   const collectionInfo = collections.find((c) => c.name === name);
+    if (!name) {
+      console.log('API Route - Missing collection name in URL');
+      return NextResponse.json({ error: 'Collection name is required' }, { status: 400 });
+    }
 
-   if (!collectionInfo) {
-     console.log(`API Route - Collection not found: ${name}`);
-     return NextResponse.json({ error: 'Collection not found' }, { status: 404 });
-   }
+    console.log(`API Route - Fetching collections for: ${name}`);
+    const collections = await getCollections();
+    const collectionInfo = collections.find((c) => c.name === name);
 
-   console.log(`API Route - Found collection, fetching data for: ${name}`);
-   const data = await getCollectionData(
-     name,
-     collectionInfo.properties.map((prop) => ({
-       name: prop.name,
-       dataType: prop.dataType || ['string']
-     }))
-   );
+    if (!collectionInfo) {
+      console.log(`API Route - Collection not found: ${name}`);
+      return NextResponse.json({ error: 'Collection not found' }, { status: 404 });
+    }
+
+    console.log(`API Route - Found collection, fetching data for: ${name}`);
+    const data = await getCollectionData(
+      name,
+      collectionInfo.properties.map((prop) => ({
+        name: prop.name,
+        dataType: prop.dataType || ['string']
+      })),
+      sortProperty && sortOrder ? { property: sortProperty, order: sortOrder } : undefined
+    );
 
    console.log(`API Route - Successfully fetched data for: ${name}`);
    return NextResponse.json({ data });
