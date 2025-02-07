@@ -7,6 +7,11 @@ A simple web interface to explore your local Weaviate collections and inspect th
 - Explore collection data in a tabular format
 - Dynamic table rendering based on collection schema
 - Real-time data fetching from your Weaviate instance
+- Advanced data management capabilities:
+  * Sort date columns in ascending/descending order
+  * Multi-object deletion with confirmation
+  * Interactive selection mode for object management
+  * Visual feedback for selection state
 
 ## Installation & Setup
 
@@ -107,6 +112,27 @@ This is a learning project for Next.js 14 with TypeScript. While functional, the
 - Uses TanStack Table for data display
 - Styled with Tailwind CSS
 - Weaviate TypeScript client for data access
+
+### Recent Enhancements
+
+1. **Date Column Sorting**
+   - Click on date column headers to toggle sort order
+   - Visual indicators for sort direction (↑↓)
+   - Server-side sorting for optimal performance
+   - Maintains sort state during data updates
+
+2. **Multi-Object Deletion**
+   - Select multiple objects for deletion
+   - Intuitive selection mode with checkboxes
+   - Visual feedback with button state changes
+   - Confirmation modal with type-to-confirm safety
+   - Automatic table refresh after deletion
+
+3. **Enhanced User Experience**
+   - Clear visual indicators for interactive elements
+   - Automatic mode transitions based on user actions
+   - Keyboard support (Escape to cancel)
+   - Error handling with user-friendly messages
 
 ## Troubleshooting
 
