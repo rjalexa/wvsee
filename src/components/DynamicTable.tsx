@@ -12,7 +12,11 @@ type SortConfig = {
   direction: 'asc' | 'desc';
 } | null;
 
-type TableData = Record<string, unknown>;
+type TableData = Record<string, unknown> & {
+  _additional?: {
+    id: string;
+  };
+};
 
 type DynamicTableProps = {
   columns: ColumnDef[];
@@ -24,6 +28,9 @@ type DynamicTableProps = {
     key: string;
     direction: 'asc' | 'desc';
   } | null;
+  selectionMode?: boolean;
+  selectedIds?: Set<string>;
+  onSelect?: (id: string) => void;
 };
 
 export const DynamicTable: React.FC<DynamicTableProps> = ({
@@ -32,7 +39,10 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
   loading = false,
   error,
   onSort,
-  sortConfig
+  sortConfig,
+  selectionMode = false,
+  selectedIds = new Set(),
+  onSelect
 }) => {
   if (loading) {
     return <div>Loading...</div>;
@@ -75,6 +85,11 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
+            {selectionMode && (
+              <th scope="col" className="relative px-6 py-3 w-0">
+                <span className="sr-only">Select</span>
+              </th>
+            )}
             {columns.map((column) => (
               <th
                 key={column.key}
@@ -98,7 +113,17 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {data.map((row, rowIndex) => (
-            <tr key={rowIndex}>
+            <tr key={row._additional?.id || rowIndex} className="hover:bg-gray-50">
+              {selectionMode && (
+                <td className="relative w-0 px-6 py-4">
+                  <input
+                    type="checkbox"
+                    className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    checked={row._additional?.id ? selectedIds.has(row._additional.id) : false}
+                    onChange={() => row._additional?.id && onSelect?.(row._additional.id)}
+                  />
+                </td>
+              )}
               {columns.map((column) => (
                 <td
                   key={column.key}
