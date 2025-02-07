@@ -18,6 +18,9 @@ export async function getCollectionData(
     const query = `{
       Get {
         ${className}${sortDirective ? `(${sortDirective})` : ''} {
+          _additional {
+            id
+          }
           ${properties.map(p => p.name).join('\n')}
         }
       }
@@ -48,6 +51,27 @@ export interface CollectionInfo {
     description?: string;
     dataType?: string[];
   }[];
+}
+
+export async function deleteObjects(className: string, objectIds: string[]): Promise<void> {
+  console.log(`\n*** Collection: ${className}`);
+  console.log(`\tDeleting ${objectIds.length} objects`);
+  
+  for (const id of objectIds) {
+    try {
+      const response = await fetch(`${WEAVIATE_URL}/v1/objects/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        console.error(`Failed to delete object "${id}". Status: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to delete object: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error(`Error deleting object "${id}":`, error);
+      throw error;
+    }
+  }
 }
 
 export async function deleteCollection(className: string): Promise<void> {

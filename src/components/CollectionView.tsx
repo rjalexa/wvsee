@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { DynamicTable, ColumnDef } from '@/components/DynamicTable';
-import { CollectionData } from '@/lib/weaviate';
+import { CollectionData, deleteObjects } from '@/lib/weaviate';
+import { DeleteObjectsModal } from '@/components/DeleteObjectsModal';
 
 interface CollectionViewProps {
   collectionName: string;
@@ -18,6 +19,9 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<{ property: string; order: 'asc' | 'desc' } | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -55,6 +59,65 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
   useEffect(() => {
     fetchData();
   }, [collectionName, sortConfig]); // Re-fetch when sort changes
+
+  const handleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleDeleteClick = () => {
+    if (selectionMode) {
+      if (selectedIds.size > 0) {
+        setDeleteModalOpen(true);
+      } else {
+        // Exit selection mode if no items are selected
+        setSelectionMode(false);
+      }
+    } else {
+      setSelectionMode(true);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/collection/${collectionName}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          objectIds: Array.from(selectedIds)
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.details || error.error || 'Failed to delete objects');
+      }
+      setDeleteModalOpen(false);
+      setSelectionMode(false);
+      setSelectedIds(new Set());
+      await fetchData();
+    } catch (err) {
+      console.error('Error deleting objects:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete objects');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
 
   if (error) {
     return (
@@ -100,14 +163,49 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
   };
 
   return (
-    <DynamicTable 
-      data={data} 
-      columns={columns} 
-      onSort={handleSort}
-      sortConfig={sortConfig ? { 
-        key: sortConfig.property, 
-        direction: sortConfig.order 
-      } : null}
-    />
+    <div>
+      <div className="mb-4 flex justify-between">
+        <div className="flex gap-2">
+          <button
+            onClick={handleDeleteClick}
+            className={`px-4 py-2 rounded-md text-white font-medium ${
+              selectionMode && selectedIds.size > 0
+                ? 'bg-red-600 hover:bg-red-700'
+                : 'bg-red-100 text-red-700 hover:bg-red-200'
+            }`}
+          >
+            Delete
+          </button>
+          {selectionMode && (
+            <button
+              onClick={handleCancelSelection}
+              className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      </div>
+
+      <DynamicTable 
+        data={data} 
+        columns={columns} 
+        onSort={handleSort}
+        sortConfig={sortConfig ? { 
+          key: sortConfig.property, 
+          direction: sortConfig.order 
+        } : null}
+        selectionMode={selectionMode}
+        selectedIds={selectedIds}
+        onSelect={handleSelect}
+      />
+
+      <DeleteObjectsModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onDelete={handleDeleteConfirm}
+        selectedCount={selectedIds.size}
+      />
+    </div>
   );
 }
