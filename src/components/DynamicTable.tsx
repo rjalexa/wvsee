@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 export type ColumnDef = {
   key: string;
@@ -6,11 +6,6 @@ export type ColumnDef = {
   dataType?: string[];
   render?: (value: unknown) => React.ReactNode;
 };
-
-type SortConfig = {
-  key: string;
-  direction: 'asc' | 'desc';
-} | null;
 
 type TableData = Record<string, unknown> & {
   _additional?: {

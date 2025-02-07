@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { DynamicTable, ColumnDef } from '@/components/DynamicTable';
-import { CollectionData, deleteObjects } from '@/lib/weaviate';
+import { CollectionData } from '@/lib/weaviate';
 import { DeleteObjectsModal } from '@/components/DeleteObjectsModal';
 
 interface CollectionViewProps {
@@ -23,7 +23,7 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const url = new URL(`/api/collection/${collectionName}`, window.location.origin);
@@ -54,11 +54,11 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
     } finally {
       setLoading(false);
     }
-  };
+  }, [collectionName, sortConfig]);
 
   useEffect(() => {
     fetchData();
-  }, [collectionName, sortConfig]); // Re-fetch when sort changes
+  }, [fetchData]); // fetchData already includes collectionName and sortConfig dependencies
 
   const handleSelect = (id: string) => {
     setSelectedIds(prev => {

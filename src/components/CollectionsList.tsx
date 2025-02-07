@@ -2,7 +2,6 @@ import { CollectionInfo } from '@/lib/weaviate';
 import Link from 'next/link';
 import { useState } from 'react';
 import { DeleteModal } from './DeleteModal';
-import { useRouter } from 'next/navigation';
 
 type SortMethod = 'name' | 'count';
 type SortDirection = 'asc' | 'desc';
@@ -17,7 +16,6 @@ export function CollectionsList({ collections, onDeleteSuccess }: CollectionsLis
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
-  const router = useRouter();
 
   const formatNumber = (num: number): string => {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');

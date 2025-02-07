@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { CollectionsList } from './CollectionsList';
 import { CollectionInfo } from '@/lib/weaviate';
 import { useRouter } from 'next/navigation';
