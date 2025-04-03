@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     // Validate URL format
     try {
       new URL(url);
-    } catch (err) {
+    } catch (_err) {
       return NextResponse.json(
         { error: 'Invalid URL format' },
         { status: 400 }
@@ -83,11 +83,11 @@ export async function POST(request: NextRequest) {
       
       // Store the connection ID
       setConnectionId(newConnectionId);
-    } catch (err) {
+    } catch (error) {
       return NextResponse.json(
         { 
           error: 'Failed to connect to Weaviate',
-          details: err instanceof Error ? err.message : 'Unknown error'
+          details: error instanceof Error ? error.message : 'Unknown error'
         },
         { status: 502 }
       );
@@ -101,12 +101,12 @@ export async function POST(request: NextRequest) {
       url,
       newConnection: getConnectionId() !== currentConnectionId || !currentConnectionId
     });
-  } catch (err) {
-    console.error('Error updating connection:', err);
+  } catch (error) {
+    console.error('Error updating connection:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error',
-        details: err instanceof Error ? err.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );

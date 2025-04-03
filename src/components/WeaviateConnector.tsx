@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getConnectionId } from '@/lib/weaviate';
 
 interface WeaviateConnectorProps {
   initialUrl: string;
@@ -24,7 +23,7 @@ export function WeaviateConnector({ initialUrl }: WeaviateConnectorProps) {
         port: parseInt(urlObj.port || '8080'),
         grpcPort: 50051 // Default gRPC port
       };
-    } catch (err) {
+    } catch (_err) {
       // If URL is invalid, return default values
       return { host: '127.0.0.1', port: 8080, grpcPort: 50051 };
     }
@@ -91,9 +90,9 @@ export function WeaviateConnector({ initialUrl }: WeaviateConnectorProps) {
         // Just refresh the page for same instance connections
         router.refresh();
       }
-    } catch (err) {
-      console.error('Failed to connect:', err);
-      setError(err instanceof Error ? err.message : 'Failed to connect to Weaviate');
+    } catch (error) {
+      console.error('Failed to connect:', error);
+      setError(error instanceof Error ? error.message : 'Failed to connect to Weaviate');
     } finally {
       setConnecting(false);
     }
