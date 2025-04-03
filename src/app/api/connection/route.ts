@@ -84,10 +84,24 @@ export async function POST(request: NextRequest) {
       // Store the connection ID
       setConnectionId(newConnectionId);
     } catch (error) {
+      // Provide more detailed error information for Docker networking issues
+      const errorDetails = error instanceof Error ? error.message : 'Unknown error';
+      let errorHint = '';
+      
+      // Check for common Docker networking issues
+      if (errorDetails.includes('ECONNREFUSED')) {
+        errorHint = 'This might be a Docker networking issue. If connecting to a container, make sure to use the internal port (e.g., :8080) not the host-mapped port (e.g., :8090).';
+      } else if (errorDetails.includes('ENOTFOUND')) {
+        errorHint = 'Hostname could not be resolved. Make sure the container is on the same Docker network or use the container IP address.';
+      } else if (errorDetails.includes('timeout')) {
+        errorHint = 'Connection timed out. Check if the Weaviate instance is running and accessible from this container.';
+      }
+      
       return NextResponse.json(
         { 
           error: 'Failed to connect to Weaviate',
-          details: error instanceof Error ? error.message : 'Unknown error'
+          details: errorDetails,
+          hint: errorHint
         },
         { status: 502 }
       );

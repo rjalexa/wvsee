@@ -11,6 +11,7 @@ export function WeaviateConnector({ initialUrl }: WeaviateConnectorProps) {
   const [url, setUrl] = useState(initialUrl);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorHint, setErrorHint] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<string | null>(null);
   const router = useRouter();
 
@@ -44,6 +45,7 @@ export function WeaviateConnector({ initialUrl }: WeaviateConnectorProps) {
     try {
       setConnecting(true);
       setError(null);
+      setErrorHint(null);
       
       // Format URL properly if needed
       let formattedUrl = url;
@@ -71,7 +73,12 @@ export function WeaviateConnector({ initialUrl }: WeaviateConnectorProps) {
       const result = await response.json();
       
       if (!response.ok) {
-        throw new Error(result.details || result.error || 'Failed to connect to Weaviate');
+        // Store the error details and hint
+        setError(result.details || result.error || 'Failed to connect to Weaviate');
+        if (result.hint) {
+          setErrorHint(result.hint);
+        }
+        return; // Exit early
       }
       
       // Show connection status message
@@ -92,7 +99,21 @@ export function WeaviateConnector({ initialUrl }: WeaviateConnectorProps) {
       }
     } catch (error) {
       console.error('Failed to connect:', error);
-      setError(error instanceof Error ? error.message : 'Failed to connect to Weaviate');
+      
+      // Check if the error is from our API response
+      if (error instanceof Error && error.message.includes('details')) {
+        try {
+          // Try to parse the error message as JSON
+          const errorData = JSON.parse(error.message.substring(error.message.indexOf('{')));
+          setError(errorData.details || errorData.error || 'Failed to connect to Weaviate');
+          setErrorHint(errorData.hint || null);
+        } catch {
+          // If parsing fails, just use the error message
+          setError(error.message);
+        }
+      } else {
+        setError(error instanceof Error ? error.message : 'Failed to connect to Weaviate');
+      }
     } finally {
       setConnecting(false);
     }
@@ -104,6 +125,7 @@ export function WeaviateConnector({ initialUrl }: WeaviateConnectorProps) {
         <div className="flex-grow">
           <label htmlFor="weaviate-url" className="block text-sm font-medium text-gray-700 mb-1">
             Weaviate URL
+            <span className="ml-1 text-xs text-gray-500">(Use internal Docker port, e.g., http://weaviate2025:8080 not :8090)</span>
           </label>
           <input
             type="text"
@@ -127,6 +149,11 @@ export function WeaviateConnector({ initialUrl }: WeaviateConnectorProps) {
       {error && (
         <div className="mt-2 text-sm text-red-600">
           {error}
+          {errorHint && (
+            <div className="mt-1 text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+              <strong>Tip:</strong> {errorHint}
+            </div>
+          )}
         </div>
       )}
       
