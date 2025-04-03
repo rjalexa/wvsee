@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CollectionsList } from './CollectionsList';
-import { CollectionInfo } from '@/lib/weaviate';
+import { CollectionInfo, getConnectionId } from '@/lib/weaviate';
 import { useRouter } from 'next/navigation';
 
 interface CollectionsWrapperProps {
@@ -13,12 +13,34 @@ export function CollectionsWrapper({ initialCollections }: CollectionsWrapperPro
   const [collections, setCollections] = useState<CollectionInfo[]>(initialCollections);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastConnectionId, setLastConnectionId] = useState<string>(getConnectionId());
   const router = useRouter();
+  
+  // Check if the connection has changed and refresh if needed
+  useEffect(() => {
+    // This effect will run on mount and whenever the component re-renders
+    // We need to check the current connection ID each time
+    const checkConnectionChange = async () => {
+      const currentConnectionId = getConnectionId();
+      if (currentConnectionId && currentConnectionId !== lastConnectionId) {
+        console.log('Connection changed, refreshing collections');
+        setLastConnectionId(currentConnectionId);
+        // Force a refresh with cache busting to ensure we get fresh data
+        await refreshCollections(true);
+      }
+    };
+    
+    checkConnectionChange();
+  }, [lastConnectionId]); // Re-run when lastConnectionId changes
 
-  const refreshCollections = async () => {
+  const refreshCollections = async (forceRefresh = false) => {
     try {
       setLoading(true);
-      const response = await fetch('/api/collections');
+      // Add a cache-busting parameter to force a fresh request
+      const url = forceRefresh 
+        ? `/api/collections?t=${Date.now()}&connection=${getConnectionId()}`
+        : '/api/collections';
+      const response = await fetch(url);
       const result = await response.json();
       
       if (!response.ok) {

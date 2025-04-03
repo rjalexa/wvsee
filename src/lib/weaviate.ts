@@ -59,7 +59,7 @@ export async function deleteObjects(className: string, objectIds: string[]): Pro
   
   for (const id of objectIds) {
     try {
-      const response = await fetch(`${WEAVIATE_URL}/v1/objects/${id}`, {
+      const response = await fetch(`${connectionStore.url}/v1/objects/${id}`, {
         method: 'DELETE',
       });
 
@@ -78,7 +78,7 @@ export async function deleteCollection(className: string): Promise<void> {
   console.log(`\n*** Collection: ${className}`);
   console.log(`\tDeleting collection`);
   try {
-    const response = await fetch(`${WEAVIATE_URL}/v1/schema/${className}`, {
+    const response = await fetch(`${connectionStore.url}/v1/schema/${className}`, {
       method: 'DELETE',
     });
 
@@ -150,20 +150,36 @@ type WeaviateCollection = {
   properties: string[];
 };
 
-const WEAVIATE_URL = process.env.WEAVIATE_URL;
+import ConnectionStore from './connectionStore';
+
+// Use the ConnectionStore to manage the URL
+const connectionStore = ConnectionStore.getInstance();
 
 export function getWeaviateUrl(): string {
-  return WEAVIATE_URL || 'URL not configured';
+  return connectionStore.url || 'URL not configured';
 }
 
-if (!WEAVIATE_URL) {
+export function setWeaviateUrl(url: string): void {
+  connectionStore.url = url;
+}
+
+export function getConnectionId(): string {
+  return connectionStore.connectionId;
+}
+
+export function setConnectionId(id: string): void {
+  connectionStore.connectionId = id;
+}
+
+if (!connectionStore.url) {
   console.error('WEAVIATE_URL is not configured');
-  throw new Error('Weaviate URL is not configured. Please check your environment variables.');
+  // Don't throw an error here to allow the UI to handle the connection
+  // Instead, we'll show a connection form
 }
 
 export async function executeQuery(queryStr: string): Promise<WeaviateResponse> {
   try {
-    const response = await fetch(`${WEAVIATE_URL}/v1/graphql`, {
+    const response = await fetch(`${connectionStore.url}/v1/graphql`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -181,7 +197,7 @@ export async function executeQuery(queryStr: string): Promise<WeaviateResponse> 
     return result;
   } catch (error) {
     console.error('GraphQL query error:', {
-      url: WEAVIATE_URL,
+      url: connectionStore.url,
       error: error instanceof Error ? {
         name: error.name,
         message: error.message,
@@ -213,9 +229,9 @@ export async function getObjectsByClass(className: string): Promise<CollectionDa
 }
 
 export async function getCollections(): Promise<CollectionInfo[]> {
-  console.log(`Connected to Weaviate at: ${WEAVIATE_URL}`);
+  console.log(`Connected to Weaviate at: ${connectionStore.url}`);
   try {
-    const response = await fetch(`${WEAVIATE_URL}/v1/schema`);
+    const response = await fetch(`${connectionStore.url}/v1/schema`);
     if (!response.ok) {
       console.error(`Failed to fetch schema. Status: ${response.status} ${response.statusText}`);
       throw new Error(`Failed to fetch schema: ${response.statusText}`);
@@ -245,7 +261,7 @@ export async function getCollections(): Promise<CollectionInfo[]> {
     return result;
   } catch (error) {
     console.error('Error fetching collections:', {
-      url: WEAVIATE_URL,
+      url: connectionStore.url,
       error: error instanceof Error ? {
         name: error.name,
         message: error.message,
@@ -259,7 +275,7 @@ export async function getCollections(): Promise<CollectionInfo[]> {
 
 async function executeAggregateQuery(queryStr: string, className: string): Promise<AggregateResponse> {
   try {
-    const response = await fetch(`${WEAVIATE_URL}/v1/graphql`, {
+    const response = await fetch(`${connectionStore.url}/v1/graphql`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -275,7 +291,7 @@ async function executeAggregateQuery(queryStr: string, className: string): Promi
     return response.json();
   } catch (error) {
     console.error(`Query error for collection "${className}":`, {
-      url: WEAVIATE_URL,
+      url: connectionStore.url,
       error: error instanceof Error ? {
         name: error.name,
         message: error.message,

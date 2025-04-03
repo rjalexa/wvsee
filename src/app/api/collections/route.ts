@@ -1,7 +1,20 @@
 import { NextResponse } from 'next/server';
-import { getCollections } from '@/lib/weaviate';
+import { getCollections, getConnectionId } from '@/lib/weaviate';
 
-export async function GET() {
+export async function GET(request: Request) {
+  // Add a cache-busting parameter based on the connection ID and current time
+  const url = new URL(request.url);
+  const connectionId = getConnectionId();
+  
+  // Always add a timestamp to prevent caching
+  url.searchParams.set('t', Date.now().toString());
+  
+  if (connectionId) {
+    url.searchParams.set('connection', connectionId);
+  }
+  
+  // Log the current connection ID for debugging
+  console.log(`API Route - Fetching collections with connection ID: ${connectionId}`);
   try {
     console.log('API Route - Fetching collections list');
     const collections = await getCollections();
