@@ -23,7 +23,7 @@ export function WeaviateConnector({ initialUrl }: WeaviateConnectorProps) {
         port: parseInt(urlObj.port || '8080'),
         grpcPort: 50051 // Default gRPC port
       };
-    } catch (_err) {
+    } catch {
       // If URL is invalid, return default values
       return { host: '127.0.0.1', port: 8080, grpcPort: 50051 };
     }
