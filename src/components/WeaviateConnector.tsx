@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface WeaviateConnectorProps {
   initialUrl: string;
@@ -9,6 +9,7 @@ interface WeaviateConnectorProps {
 
 export function WeaviateConnector({ initialUrl }: WeaviateConnectorProps) {
   const [url, setUrl] = useState(initialUrl);
+  const [apiKey, setApiKey] = useState("");
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorHint, setErrorHint] = useState<string | null>(null);
@@ -16,17 +17,19 @@ export function WeaviateConnector({ initialUrl }: WeaviateConnectorProps) {
   const router = useRouter();
 
   // Extract host and port from URL
-  const parseUrl = (fullUrl: string): { host: string, port: number, grpcPort: number } => {
+  const parseUrl = (
+    fullUrl: string
+  ): { host: string; port: number; grpcPort: number } => {
     try {
       const urlObj = new URL(fullUrl);
       return {
         host: urlObj.hostname,
-        port: parseInt(urlObj.port || '8080'),
-        grpcPort: 50051 // Default gRPC port
+        port: parseInt(urlObj.port || "8080"),
+        grpcPort: 50051, // Default gRPC port
       };
     } catch {
       // If URL is invalid, return default values
-      return { host: '127.0.0.1', port: 8080, grpcPort: 50051 };
+      return { host: "127.0.0.1", port: 8080, grpcPort: 50051 };
     }
   };
 
@@ -46,48 +49,51 @@ export function WeaviateConnector({ initialUrl }: WeaviateConnectorProps) {
       setConnecting(true);
       setError(null);
       setErrorHint(null);
-      
+
       // Format URL properly if needed
       let formattedUrl = url;
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      if (!url.startsWith("http://") && !url.startsWith("https://")) {
         formattedUrl = `http://${url}`;
       }
-      
+
       // Parse the URL to get host and port
       const { host, port, grpcPort } = parseUrl(formattedUrl);
-      
+
       // Call API to update the connection
-      const response = await fetch('/api/connection', {
-        method: 'POST',
+      const response = await fetch("/api/connection", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           url: formattedUrl,
           host,
           port,
-          grpcPort
+          grpcPort,
+          apiKey,
         }),
       });
-      
+
       const result = await response.json();
-      
+
       if (!response.ok) {
         // Store the error details and hint
-        setError(result.details || result.error || 'Failed to connect to Weaviate');
+        setError(
+          result.details || result.error || "Failed to connect to Weaviate"
+        );
         if (result.hint) {
           setErrorHint(result.hint);
         }
         return; // Exit early
       }
-      
+
       // Show connection status message
       if (result.newConnection) {
-        setConnectionStatus('Connected to a different Weaviate instance');
+        setConnectionStatus("Connected to a different Weaviate instance");
       } else {
-        setConnectionStatus('Connected to the same Weaviate instance');
+        setConnectionStatus("Connected to the same Weaviate instance");
       }
-      
+
       // Instead of just refreshing the page, we need to force a full reload
       // to ensure all components get the updated connection
       if (result.newConnection) {
@@ -98,21 +104,31 @@ export function WeaviateConnector({ initialUrl }: WeaviateConnectorProps) {
         router.refresh();
       }
     } catch (error) {
-      console.error('Failed to connect:', error);
-      
+      console.error("Failed to connect:", error);
+
       // Check if the error is from our API response
-      if (error instanceof Error && error.message.includes('details')) {
+      if (error instanceof Error && error.message.includes("details")) {
         try {
           // Try to parse the error message as JSON
-          const errorData = JSON.parse(error.message.substring(error.message.indexOf('{')));
-          setError(errorData.details || errorData.error || 'Failed to connect to Weaviate');
+          const errorData = JSON.parse(
+            error.message.substring(error.message.indexOf("{"))
+          );
+          setError(
+            errorData.details ||
+              errorData.error ||
+              "Failed to connect to Weaviate"
+          );
           setErrorHint(errorData.hint || null);
         } catch {
           // If parsing fails, just use the error message
           setError(error.message);
         }
       } else {
-        setError(error instanceof Error ? error.message : 'Failed to connect to Weaviate');
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Failed to connect to Weaviate"
+        );
       }
     } finally {
       setConnecting(false);
@@ -121,31 +137,58 @@ export function WeaviateConnector({ initialUrl }: WeaviateConnectorProps) {
 
   return (
     <div className="mb-6">
-      <div className="flex items-end gap-2">
-        <div className="flex-grow">
-          <label htmlFor="weaviate-url" className="block text-sm font-medium text-gray-700 mb-1">
-            Weaviate URL
-            <span className="ml-1 text-xs text-gray-500">(Use internal Docker port, e.g., http://weaviate2025:8080 not :8090)</span>
-          </label>
-          <input
-            type="text"
-            id="weaviate-url"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            value={url}
-            onChange={handleUrlChange}
-            onClick={handleInputClick}
-            placeholder="http://localhost:8080"
-          />
+      <div className="flex flex-col gap-4">
+        <div className="flex items-end gap-2">
+          <div className="flex-grow">
+            <label
+              htmlFor="weaviate-url"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Weaviate URL
+              <span className="ml-1 text-xs text-gray-500">
+                (Use internal Docker port, e.g., http://weaviate2025:8080 not
+                :8090)
+              </span>
+            </label>
+            <input
+              type="text"
+              id="weaviate-url"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              value={url}
+              onChange={handleUrlChange}
+              onClick={handleInputClick}
+              placeholder="http://localhost:8080"
+            />
+          </div>
         </div>
-        <button
-          onClick={handleConnect}
-          disabled={connecting}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-        >
-          {connecting ? 'Connecting...' : 'Connect'}
-        </button>
+
+        <div className="flex items-end gap-2">
+          <div className="flex-grow">
+            <label
+              htmlFor="weaviate-api-key"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              API Key (optional)
+            </label>
+            <input
+              type="password"
+              id="weaviate-api-key"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Enter your Weaviate API key"
+            />
+          </div>
+          <button
+            onClick={handleConnect}
+            disabled={connecting}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+          >
+            {connecting ? "Connecting..." : "Connect"}
+          </button>
+        </div>
       </div>
-      
+
       {error && (
         <div className="mt-2 text-sm text-red-600">
           {error}
@@ -156,11 +199,9 @@ export function WeaviateConnector({ initialUrl }: WeaviateConnectorProps) {
           )}
         </div>
       )}
-      
+
       {connectionStatus && !error && (
-        <div className="mt-2 text-sm text-green-600">
-          {connectionStatus}
-        </div>
+        <div className="mt-2 text-sm text-green-600">{connectionStatus}</div>
       )}
     </div>
   );
