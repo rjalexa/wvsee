@@ -4,20 +4,26 @@ type SortConfig = {
 } | null;
 
 export async function getCollectionData(
-  className: string, 
+  className: string,
   properties: { name: string; dataType: string | string[] }[],
-  sort?: SortConfig
+  sort?: SortConfig,
+  limit?: number,
+  offset?: number,
 ): Promise<CollectionData[]> {
   try {
-    const sortDirective = sort ? 
-      `sort: [{
+    const sortDirective = sort ?
+      `sort: {
         path: ["${sort.property}"],
         order: ${sort.order.toLowerCase()}
-      }]` : '';
+      }` : '';
+
+    const paginationDirective = `limit: ${limit}, offset: ${offset}`;
+
+    const directives = [sortDirective, paginationDirective].filter(Boolean).join(', ');
 
     const query = `{
       Get {
-        ${className}${sortDirective ? `(${sortDirective})` : ''} {
+        ${className}${directives ? `(${directives})` : ''} {
           _additional {
             id
           }

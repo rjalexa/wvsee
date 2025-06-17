@@ -48,6 +48,8 @@ export async function GET(request: NextRequest) {
     const name = url.pathname.split('/').pop();
     const sortProperty = url.searchParams.get('sortProperty');
     const sortOrder = url.searchParams.get('sortOrder') as 'asc' | 'desc' | null;
+    const limit = url.searchParams.get('limit');
+    const offset = url.searchParams.get('offset');
 
     if (!name) {
       console.log('API Route - Missing collection name in URL');
@@ -70,7 +72,9 @@ export async function GET(request: NextRequest) {
         name: prop.name,
         dataType: prop.dataType || ['string']
       })),
-      sortProperty && sortOrder ? { property: sortProperty, order: sortOrder } : undefined
+      sortProperty && sortOrder ? { property: sortProperty, order: sortOrder } : undefined,
+      limit ? parseInt(limit) : undefined,
+      offset ? parseInt(offset) : undefined
     );
 
     console.log(`API Route - Successfully fetched data for: ${name}`);
