@@ -41,6 +41,10 @@ export function CollectionsList({ collections, onDeleteSuccess }: CollectionsLis
     try {
       const response = await fetch(`/api/collection/${selectedCollection}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ deleteCollection: true }),
       });
 
       if (!response.ok) {
