@@ -89,7 +89,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
               <th
                 key={column.key}
                 scope="col"
-                className={`px-6 py-3 text-left text-xs font-medium text-gray-500 tracking-wider group relative ${
+                className={`px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider group relative ${
                   column.dataType?.includes('date') ? 'cursor-pointer hover:bg-gray-100' : ''
                 }`}
                 title={column.dataType ? column.dataType.join(', ') : 'unknown'}
@@ -122,7 +122,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
               {columns.map((column) => (
                 <td
                   key={column.key}
-                  className="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                  className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
                 >
                   {renderCell(row, column)}
                 </td>

@@ -25,6 +25,9 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [offset, setOffset] = useState(0);
   const [canLoadMore, setCanLoadMore] = useState(true);
+  const [tenants, setTenants] = useState<Array<{name: string, activityStatus: string}>>([]);
+  const [selectedTenant, setSelectedTenant] = useState<string>('');
+  const [loadingTenants, setLoadingTenants] = useState(true);
   const topRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -37,6 +40,31 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
   const scrollToTop = () => {
     topRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  useEffect(() => {
+    const fetchTenants = async () => {
+      try {
+        setLoadingTenants(true);
+        const response = await fetch(`/api/collection/${collectionName}/tenants`);
+        const result = await response.json();
+        
+        if (response.ok && result.tenants && result.tenants.length > 0) {
+          setTenants(result.tenants);
+          setSelectedTenant(result.tenants[0].name);
+        } else {
+          setTenants([]);
+          setSelectedTenant('');
+        }
+      } catch (err) {
+        console.error('Error fetching tenants:', err);
+        setTenants([]);
+      } finally {
+        setLoadingTenants(false);
+      }
+    };
+    
+    fetchTenants();
+  }, [collectionName]);
 
   const fetchData = useCallback(async (loadMore = false) => {
     if (!loadMore) {
@@ -56,6 +84,10 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
       }
       url.searchParams.set('limit', String(OBJECTS_PER_PAGE));
       url.searchParams.set('offset', String(currentOffset));
+      
+      if (selectedTenant) {
+        url.searchParams.set('tenant', selectedTenant);
+      }
 
       const response = await fetch(url);
       const result = await response.json();
@@ -85,11 +117,13 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [collectionName, sortConfig, offset]);
+  }, [collectionName, sortConfig, offset, selectedTenant]);
 
   useEffect(() => {
-    fetchData(false);
-  }, [sortConfig]);
+    if (!loadingTenants && (selectedTenant || tenants.length === 0)) {
+      fetchData(false);
+    }
+  }, [sortConfig, selectedTenant, loadingTenants]);
 
   const handleLoadMore = () => {
     fetchData(true);
@@ -154,6 +188,15 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
     setSelectedIds(new Set());
   };
 
+  if (loadingTenants) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        <p className="ml-4">Loading tenants...</p>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded" role="alert">
@@ -182,6 +225,10 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
     },
   }));
 
+  console.log('CollectionView - Properties:', properties);
+  console.log('CollectionView - Columns:', columns);
+  console.log('CollectionView - Data sample:', data.slice(0, 1));
+
   const handleSort = (columnKey: string) => {
     const column = columns.find(col => col.key === columnKey);
     if (!column?.dataType?.includes('date')) return;
@@ -199,14 +246,34 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
 
   return (
     <div ref={topRef}>
+      {tenants.length > 0 && (
+        <div className="mb-4 p-4 bg-blue-100 border border-blue-400 rounded-md">
+          <label htmlFor="tenant-select" className="block text-sm font-medium text-gray-900 mb-2">
+            Select Tenant:
+          </label>
+          <select
+            id="tenant-select"
+            value={selectedTenant}
+            onChange={(e) => setSelectedTenant(e.target.value)}
+            className="w-full md:w-96 px-3 py-2 bg-white text-gray-900 border border-gray-400 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-600"
+          >
+            {tenants.map((tenant) => (
+              <option key={tenant.name} value={tenant.name}>
+                {tenant.name} ({tenant.activityStatus})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      
       <div className="mb-4 flex justify-between">
         <div className="flex gap-2">
           <button
             onClick={handleDeleteClick}
-            className={`px-4 py-2 rounded-md text-white font-medium ${
+            className={`px-4 py-2 rounded-md font-medium ${
               selectionMode && selectedIds.size > 0
-                ? 'bg-red-600 hover:bg-red-700'
-                : 'bg-red-100 text-red-700 hover:bg-red-200'
+                ? 'bg-red-600 hover:bg-red-700 text-white'
+                : 'bg-red-500 text-white hover:bg-red-600'
             }`}
           >
             Delete
@@ -214,7 +281,7 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
           {selectionMode && (
             <button
               onClick={handleCancelSelection}
-              className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="px-4 py-2 rounded-md border border-gray-400 bg-white text-gray-900 hover:bg-gray-100"
             >
               Cancel
             </button>
@@ -223,7 +290,7 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
         <div className="flex gap-2">
           <button
             onClick={scrollToBottom}
-            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+            className="px-4 py-2 rounded-md border border-gray-400 bg-white text-gray-900 hover:bg-gray-100"
           >
             Bottom
           </button>
@@ -254,7 +321,7 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
           </button>
           <button
             onClick={scrollToTop}
-            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+            className="px-4 py-2 rounded-md border border-gray-400 bg-white text-gray-900 hover:bg-gray-100"
           >
             Top
           </button>

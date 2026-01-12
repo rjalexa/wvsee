@@ -79,7 +79,7 @@ export function CollectionsList({ collections, onDeleteSuccess }: CollectionsLis
             className={`px-4 py-2 text-sm font-medium border rounded-l-lg ${
               sortMethod === 'name'
                 ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
+                : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-100'
             }`}
           >
             Name {sortMethod === 'name' && (
@@ -94,7 +94,7 @@ export function CollectionsList({ collections, onDeleteSuccess }: CollectionsLis
             className={`px-4 py-2 text-sm font-medium border-t border-b border-r rounded-r-lg ${
               sortMethod === 'count'
                 ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
+                : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-100'
             }`}
           >
             Objects {sortMethod === 'count' && (
@@ -117,9 +117,9 @@ export function CollectionsList({ collections, onDeleteSuccess }: CollectionsLis
                 {collection.name}
               </h2>
               {collection.description && (
-                <p className="text-gray-600 mt-1">{collection.description}</p>
+                <p className="text-gray-700 mt-1">{collection.description}</p>
               )}
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-sm text-gray-700 mt-2">
                 {formatNumber(collection.count)} {collection.count === 1 ? 'object' : 'objects'}
               </p>
             </div>
@@ -132,7 +132,7 @@ export function CollectionsList({ collections, onDeleteSuccess }: CollectionsLis
               </Link>
               <button
                 onClick={() => handleDeleteClick(collection.name)}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               >
                 Delete
               </button>

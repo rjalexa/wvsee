@@ -9,6 +9,7 @@ export async function getCollectionData(
   sort?: SortConfig,
   limit?: number,
   offset?: number,
+  tenant?: string,
 ): Promise<CollectionData[]> {
   try {
     const sortDirective = sort ?
@@ -18,8 +19,10 @@ export async function getCollectionData(
       }` : '';
 
     const paginationDirective = `limit: ${limit}, offset: ${offset}`;
+    
+    const tenantDirective = tenant ? `tenant: "${tenant}"` : '';
 
-    const directives = [sortDirective, paginationDirective].filter(Boolean).join(', ');
+    const directives = [tenantDirective, sortDirective, paginationDirective].filter(Boolean).join(', ');
 
     const query = `{
       Get {
@@ -33,7 +36,7 @@ export async function getCollectionData(
     }`;
 
     console.log('Executing GraphQL query:', JSON.stringify({ query }, null, 2));
-    console.log(`\n*** Collection: ${className}`);
+    console.log(`\n*** Collection: ${className}, Tenant: ${tenant || 'none'}`);
     console.log(`\tFetching data`);
     const response = await executeQuery(query);
     
@@ -102,6 +105,21 @@ export async function deleteCollection(className: string): Promise<void> {
       } : error
     });
     throw error;
+  }
+}
+
+export async function getTenants(className: string): Promise<Array<{name: string, activityStatus: string}>> {
+  try {
+    const response = await fetch(`${connectionStore.url}/v1/schema/${className}/tenants`);
+    if (!response.ok) {
+      console.error(`Failed to fetch tenants for ${className}. Status: ${response.status}`);
+      return [];
+    }
+    const tenants = await response.json();
+    return tenants;
+  } catch (error) {
+    console.error(`Error fetching tenants for ${className}:`, error);
+    return [];
   }
 }
 
@@ -249,13 +267,21 @@ export async function getCollections(): Promise<CollectionInfo[]> {
     const result: CollectionInfo[] = [];
     for (const weavClass of classes) {
       console.log(`\n*** Collection: ${weavClass.class}`);
-      console.log(`\tFetching object count`);
-      const count = await getObjectCount(weavClass.class);
-      console.log(`\tFetching properties`);
+      console.log(`\tFetching properties and count`);
+      
+      // Fetch the object count for this collection
+      let count = 0;
+      try {
+        count = await getObjectCount(weavClass.class);
+      } catch (error) {
+        console.error(`Error fetching count for ${weavClass.class}:`, error);
+        // Keep count as 0 if there's an error
+      }
+      
       result.push({
         name: weavClass.class,
         description: weavClass.description,
-        count,
+        count: count,
         properties: weavClass.properties?.map((p) => ({
           name: p.name,
           dataType: p.dataType,
@@ -309,11 +335,13 @@ async function executeAggregateQuery(queryStr: string, className: string): Promi
   }
 }
 
-async function getObjectCount(className: string): Promise<number> {
+async function getObjectCount(className: string, tenant?: string): Promise<number> {
+  const tenantDirective = tenant ? `tenant: "${tenant}"` : '';
+  
   const aggregateQuery = `
   {
     Aggregate {
-      ${className} {
+      ${className}${tenantDirective ? `(${tenantDirective})` : ''} {
         meta {
           count
         }

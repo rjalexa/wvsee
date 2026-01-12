@@ -50,13 +50,14 @@ export async function GET(request: NextRequest) {
     const sortOrder = url.searchParams.get('sortOrder') as 'asc' | 'desc' | null;
     const limit = url.searchParams.get('limit');
     const offset = url.searchParams.get('offset');
+    const tenant = url.searchParams.get('tenant');
 
     if (!name) {
       console.log('API Route - Missing collection name in URL');
       return NextResponse.json({ error: 'Collection name is required' }, { status: 400 });
     }
 
-    console.log(`API Route - Fetching collections for: ${name}`);
+    console.log(`API Route - Fetching collections for: ${name}, tenant: ${tenant || 'none'}`);
     const collections = await getCollections();
     const collectionInfo = collections.find((c) => c.name === name);
 
@@ -74,7 +75,8 @@ export async function GET(request: NextRequest) {
       })),
       sortProperty && sortOrder ? { property: sortProperty, order: sortOrder } : undefined,
       limit ? parseInt(limit) : undefined,
-      offset ? parseInt(offset) : undefined
+      offset ? parseInt(offset) : undefined,
+      tenant || undefined
     );
 
     console.log(`API Route - Successfully fetched data for: ${name}`);

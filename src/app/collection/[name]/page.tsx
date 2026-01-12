@@ -37,6 +37,10 @@ export default async function Page(props: PageProps) {
       description: prop.description
     }));
 
+    console.log('Page - Collection Info:', collectionInfo.name);
+    console.log('Page - Properties count:', collectionInfo.properties.length);
+    console.log('Page - Formatted Properties:', formattedProperties);
+
     return (
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
@@ -50,12 +54,12 @@ export default async function Page(props: PageProps) {
           </div>
           <h1 className="text-3xl font-bold">
             {collectionInfo.name}
-            <span className="text-gray-500 font-normal ml-2">
+            <span className="text-gray-700 font-normal ml-2">
               ({collectionInfo.count} {collectionInfo.count === 1 ? 'object' : 'objects'})
             </span>
           </h1>
           {collectionInfo.description && (
-            <p className="text-gray-600 mt-2">{collectionInfo.description}</p>
+            <p className="text-gray-700 mt-2">{collectionInfo.description}</p>
           )}
         </div>
         
