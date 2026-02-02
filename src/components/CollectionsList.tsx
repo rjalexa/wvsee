@@ -99,30 +99,40 @@ export function CollectionsList({ collections, onDeleteSuccess }: CollectionsLis
 
   return (
     <div>
-      <div className="flex justify-end mb-4 gap-2">
-        <Button
-          variant={sortMethod === 'name' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => toggleSort('name')}
-        >
-          Name
-          {sortMethod === 'name' && (
-            sortDirection === 'asc' ? <ArrowDown className="ml-2 h-4 w-4" /> : <ArrowUp className="ml-2 h-4 w-4" />
-          )}
-        </Button>
-        <Button
-          variant={sortMethod === 'count' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => toggleSort('count')}
-        >
-          Objects
-          {sortMethod === 'count' && (
-            sortDirection === 'asc' ? <ArrowDown className="ml-2 h-4 w-4" /> : <ArrowUp className="ml-2 h-4 w-4" />
-          )}
-        </Button>
-      </div>
-      
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {collections.length === 0 ? (
+        <Card className="p-8 text-center">
+          <Database className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No Collections Found</h3>
+          <p className="text-muted-foreground">
+            This Weaviate instance doesn&apos;t have any collections yet.
+          </p>
+        </Card>
+      ) : (
+        <>
+          <div className="flex justify-end mb-4 gap-2">
+            <Button
+              variant={sortMethod === 'name' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => toggleSort('name')}
+            >
+              Name
+              {sortMethod === 'name' && (
+                sortDirection === 'asc' ? <ArrowDown className="ml-2 h-4 w-4" /> : <ArrowUp className="ml-2 h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              variant={sortMethod === 'count' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => toggleSort('count')}
+            >
+              Objects
+              {sortMethod === 'count' && (
+                sortDirection === 'asc' ? <ArrowDown className="ml-2 h-4 w-4" /> : <ArrowUp className="ml-2 h-4 w-4" />
+              )}
+            </Button>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {sortedCollections.map((collection) => (
           <Card key={collection.name} className="flex flex-col">
             <CardHeader>
@@ -174,7 +184,9 @@ export function CollectionsList({ collections, onDeleteSuccess }: CollectionsLis
             </CardFooter>
           </Card>
         ))}
-      </div>
+          </div>
+        </>
+      )}
 
       {selectedCollection && (
         <DeleteModal
