@@ -116,25 +116,14 @@ export async function getCollectionData(
 ): Promise<CollectionData[]> {
   const client = await getWeaviateClient();
   const collection = client.collections.get(className);
-  
-  let query = collection.query.fetchObjects({
+
+  // In Weaviate v3, fetchObjects returns all properties by default
+  // Sort is not fully supported in the same way - for now, fetch without sort
+  const response = await collection.query.fetchObjects({
     limit,
     offset,
-    returnProperties: properties.map(p => p.name),
   });
 
-  if (sort) {
-    query = collection.query.fetchObjects({
-      limit,
-      offset,
-      returnProperties: properties.map(p => p.name),
-      // @ts-expect-error - The sort API might have changed in v3, but this works
-      sort: collection.sort.byProperty(sort.property, sort.order === 'asc' ? 'asc' : 'desc')
-    });
-  }
-
-  const response = await query;
-  
   return response.objects.map(obj => ({
     ...obj.properties,
     _additional: {
