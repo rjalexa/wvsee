@@ -18,6 +18,7 @@ services:
     command: ["node", "server.js"]
     networks:
       - isagog-internal
+      - isagog-loopback
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--spider", "http://localhost:3000"]
@@ -28,4 +29,6 @@ services:
 
 networks:
   isagog-internal:
+    external: true
+  isagog-loopback:
     external: true
