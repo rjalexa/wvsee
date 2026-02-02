@@ -74,16 +74,22 @@ export async function getWeaviateClient(): Promise<WeaviateClient> {
 export async function getCollections(): Promise<CollectionInfo[]> {
   const client = await getWeaviateClient();
   const collectionsMap = await client.collections.listAll();
-  
+
   const result: CollectionInfo[] = [];
-  
+
   for (const config of collectionsMap.values()) {
     const collection = client.collections.get(config.name);
-    
-    // Get object count
-    // @ts-expect-error - The aggregate API might have changed in v3, but this works
-    const response = await collection.aggregate.overAll().withTotalCount().do();
-    const count = response.totalCount || 0;
+
+    // Get object count using v3 API
+    let count = 0;
+    try {
+      // In Weaviate v3, aggregate.overAll() returns an object with totalCount
+      const response = await collection.aggregate.overAll();
+      count = response.totalCount || 0;
+    } catch (error) {
+      console.error(`Failed to get count for collection ${config.name}:`, error);
+      count = 0;
+    }
 
     result.push({
       name: config.name,
@@ -97,7 +103,7 @@ export async function getCollections(): Promise<CollectionInfo[]> {
       })) || []
     });
   }
-  
+
   return result;
 }
 
