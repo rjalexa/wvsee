@@ -5,7 +5,7 @@ import { DeleteModal } from './DeleteModal';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowDown, ArrowUp, Trash2, Database } from 'lucide-react';
+import { ArrowDown, ArrowUp, Trash2, Database, Plus } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 
@@ -69,6 +69,39 @@ export function CollectionsList({ collections, onDeleteSuccess }: CollectionsLis
     }
   });
 
+  const createTestMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/collections', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'create-test' }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.details || error.error || 'Failed to create test collection');
+      }
+
+      return response.json();
+    },
+    onSuccess: async () => {
+      toast({
+        title: "Collection created",
+        description: "Test collection has been created with 3 sample objects.",
+      });
+      await onDeleteSuccess();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create test collection",
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleDeleteClick = (collectionName: string) => {
     setSelectedCollection(collectionName);
     setDeleteModalOpen(true);
@@ -103,33 +136,51 @@ export function CollectionsList({ collections, onDeleteSuccess }: CollectionsLis
         <Card className="p-8 text-center">
           <Database className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">No Collections Found</h3>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mb-4">
             This Weaviate instance doesn&apos;t have any collections yet.
           </p>
+          <Button
+            onClick={() => createTestMutation.mutate()}
+            disabled={createTestMutation.isPending}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            {createTestMutation.isPending ? 'Creating...' : 'Create Test Collection'}
+          </Button>
         </Card>
       ) : (
         <>
-          <div className="flex justify-end mb-4 gap-2">
+          <div className="flex justify-between mb-4 gap-2">
             <Button
-              variant={sortMethod === 'name' ? 'default' : 'outline'}
+              variant="outline"
               size="sm"
-              onClick={() => toggleSort('name')}
+              onClick={() => createTestMutation.mutate()}
+              disabled={createTestMutation.isPending}
             >
-              Name
-              {sortMethod === 'name' && (
-                sortDirection === 'asc' ? <ArrowDown className="ml-2 h-4 w-4" /> : <ArrowUp className="ml-2 h-4 w-4" />
-              )}
+              <Plus className="mr-2 h-4 w-4" />
+              {createTestMutation.isPending ? 'Creating...' : 'Create Test Collection'}
             </Button>
-            <Button
-              variant={sortMethod === 'count' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => toggleSort('count')}
-            >
-              Objects
-              {sortMethod === 'count' && (
-                sortDirection === 'asc' ? <ArrowDown className="ml-2 h-4 w-4" /> : <ArrowUp className="ml-2 h-4 w-4" />
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant={sortMethod === 'name' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => toggleSort('name')}
+              >
+                Name
+                {sortMethod === 'name' && (
+                  sortDirection === 'asc' ? <ArrowDown className="ml-2 h-4 w-4" /> : <ArrowUp className="ml-2 h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                variant={sortMethod === 'count' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => toggleSort('count')}
+              >
+                Objects
+                {sortMethod === 'count' && (
+                  sortDirection === 'asc' ? <ArrowDown className="ml-2 h-4 w-4" /> : <ArrowUp className="ml-2 h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
