@@ -31,20 +31,23 @@ export async function getWeaviateClient(): Promise<WeaviateClient> {
 
     const urlObj = new URL(formattedUrl);
     const host = urlObj.hostname;
-    const port = parseInt(urlObj.port || '8080');
+    const httpPort = parseInt(urlObj.port || '8080');
     const isHttps = urlObj.protocol === 'https:';
     const apiKey = process.env.WEAVIATE_API_KEY;
 
-    // Build the full HTTP URL
-    const httpHost = `${isHttps ? 'https' : 'http'}://${host}:${port}`;
-    const grpcHost = `${host}:50051`;
+    // httpHost should be just the hostname, without protocol or port
+    const httpHost = host;
+    const grpcHost = host;
+    const grpcPort = 50051;
 
     // Create connection config with API key authentication
     if (apiKey) {
       clientInstance = await weaviate.connectToCustom({
         httpHost,
+        httpPort,
         httpSecure: isHttps,
         grpcHost,
+        grpcPort,
         grpcSecure: false,
         authCredentials: new weaviate.ApiKey(apiKey),
       });
@@ -52,8 +55,10 @@ export async function getWeaviateClient(): Promise<WeaviateClient> {
       // Connect without authentication
       clientInstance = await weaviate.connectToCustom({
         httpHost,
+        httpPort,
         httpSecure: isHttps,
         grpcHost,
+        grpcPort,
         grpcSecure: false,
       });
     }
