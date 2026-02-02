@@ -58,7 +58,11 @@ export async function POST(request: Request) {
 
     // Check if collection already exists
     const existingCollections = await client.collections.listAll();
-    if (existingCollections.has('Test')) {
+    const collectionExists = Array.from(existingCollections.values()).some(
+      (config) => config.name === 'Test'
+    );
+
+    if (collectionExists) {
       return NextResponse.json(
         { error: 'Collection "Test" already exists' },
         { status: 400 }
