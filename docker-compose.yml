@@ -7,8 +7,9 @@ services:
         - WEAVIATE_URL=http://isagog-weaviate:8080
     container_name: weaviate-viewer
     # Map a free external port 3200 to the container's internal 3000 port
+    # Bind only to localhost for security
     ports:
-      - "3200:3000"
+      - "127.0.0.1:3200:3000"
     environment:
       - NODE_ENV=production
       - WEAVIATE_URL=http://isagog-weaviate:8080

@@ -23,6 +23,9 @@ RUN pnpm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
+# Install wget for healthcheck
+RUN apk add --no-cache wget
+
 # Install pnpm (needed at runtime to run the server if you rely on pnpm commands)
 RUN npm install -g pnpm
 
@@ -34,6 +37,17 @@ RUN addgroup --system --gid 1001 nodejs \
 USER nextjs
 
 # Copy built assets
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Expose port
+EXPOSE 3000
+
+# Set environment
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Start the server
+CMD ["node", "server.js"]
