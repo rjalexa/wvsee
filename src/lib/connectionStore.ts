@@ -48,11 +48,10 @@ class ConnectionStore {
     this._connectionId = '';
   }
   
-  // Generate a unique connection ID based on the URL and a timestamp
-  // This ensures that even connections to the same URL are treated as different
-  // if they happen at different times
+  // Generate a unique connection ID based on the URL only
+  // This ensures connections to the same URL are recognized as the same
   generateConnectionId(url: string): string {
-    return `${url}|${Date.now()}`;
+    return url;
   }
 }
 

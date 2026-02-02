@@ -89,11 +89,11 @@ export function WeaviateConnector({ initialUrl }: WeaviateConnectorProps) {
       
       // Show connection status message
       if (result.newConnection) {
-        setConnectionStatus('Connected to a different Weaviate instance. Reloading...');
-        // Delay reload slightly to show the success message
+        setConnectionStatus('Connected to a different Weaviate instance. Reloading in 2 seconds...');
+        // Delay reload to show the success message
         setTimeout(() => {
           window.location.reload();
-        }, 1000);
+        }, 2000);
       } else {
         setConnectionStatus('Already connected to this Weaviate instance');
         // Just refresh the data without full reload
