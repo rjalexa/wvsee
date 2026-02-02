@@ -27,12 +27,20 @@ export async function POST(request: NextRequest) {
     
     // Test connection to Weaviate and get server info
     try {
+      // Build headers with API key if available
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      const apiKey = process.env.WEAVIATE_API_KEY;
+      if (apiKey) {
+        headers['Authorization'] = `Bearer ${apiKey}`;
+      }
+
       // First check if the server is reachable
       const testResponse = await fetch(`${url}/v1/schema`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         // Short timeout to avoid hanging if the server is unreachable
         signal: AbortSignal.timeout(5000),
       });
@@ -50,9 +58,7 @@ export async function POST(request: NextRequest) {
       // Get server info to identify the instance
       const metaResponse = await fetch(`${url}/v1/meta`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         signal: AbortSignal.timeout(5000),
       });
       
