@@ -1,4 +1,5 @@
-import { getCollections, getWeaviateUrl } from '@/lib/weaviate';
+import { getCollections } from '@/lib/weaviate';
+import { getWeaviateUrl } from '@/lib/connection';
 import { CollectionsWrapper } from '@/components/CollectionsWrapper';
 import { WeaviateConnector } from '@/components/WeaviateConnector';
 import { Suspense } from 'react';

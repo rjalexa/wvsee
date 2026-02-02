@@ -1,20 +1,22 @@
 services:
-  wveye:
+  weaviate-viewer:
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        - WEAVIATE_URL=http://weaviate:8080
+        - WEAVIATE_URL=http://isagog-weaviate:8080
+    container_name: weaviate-viewer
     # Map a free external port 3200 to the container's internal 3000 port
     ports:
       - "3200:3000"
     environment:
       - NODE_ENV=production
-      - WEAVIATE_URL=http://weaviate:8080
+      - WEAVIATE_URL=http://isagog-weaviate:8080
+      - WEAVIATE_API_KEY=${WEAVIATE_API_KEY}
       - PORT=3000
     command: ["node", "server.js"]
     networks:
-      - mema_docker_compose_weaviate_net # name of the docker network where weaviate docker lives
+      - isagog-internal
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--spider", "http://localhost:3000"]
@@ -24,5 +26,5 @@ services:
       start_period: 5s
 
 networks:
-  mema_docker_compose_weaviate_net: # name of the docker network where weaviate docker lives
+  isagog-internal:
     external: true

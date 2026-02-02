@@ -1,336 +1,146 @@
-type SortConfig = {
-  property: string;
-  order: 'asc' | 'desc';
-} | null;
+import weaviate, { WeaviateClient } from 'weaviate-client';
+import ConnectionStore from './connectionStore';
+import { CollectionInfo, CollectionData } from './types';
+
+const connectionStore = ConnectionStore.getInstance();
+
+let clientInstance: WeaviateClient | null = null;
+let currentUrl: string | null = null;
+
+export async function getWeaviateClient(): Promise<WeaviateClient> {
+  const url = connectionStore.url;
+
+  if (!url) {
+    throw new Error('Weaviate URL is not configured');
+  }
+
+  // If we have a client and the URL hasn't changed, return the existing client
+  if (clientInstance && currentUrl === url) {
+    return clientInstance;
+  }
+
+  // Otherwise, create a new client
+  console.log(`Initializing Weaviate client for URL: ${url}`);
+
+  try {
+    // Parse the URL to get host and scheme
+    let formattedUrl = url;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      formattedUrl = `http://${url}`;
+    }
+
+    const urlObj = new URL(formattedUrl);
+    const host = urlObj.hostname;
+    const port = parseInt(urlObj.port || '8080');
+    const scheme = urlObj.protocol.replace(':', '');
+    const apiKey = process.env.WEAVIATE_API_KEY;
+
+    // Create connection config with API key authentication
+    if (apiKey) {
+      clientInstance = await weaviate.connectToCustom({
+        host,
+        port,
+        grpcPort: 50051,
+        scheme,
+        authCredentials: {
+          apiKey: apiKey,
+        },
+      });
+    } else {
+      // Connect without authentication
+      clientInstance = await weaviate.connectToCustom({
+        host,
+        port,
+        grpcPort: 50051,
+        scheme,
+      });
+    }
+
+    currentUrl = url;
+    return clientInstance;
+  } catch (error) {
+    console.error('Failed to initialize Weaviate client:', error);
+    throw error;
+  }
+}
+
+export async function getCollections(): Promise<CollectionInfo[]> {
+  const client = await getWeaviateClient();
+  const collectionsMap = await client.collections.listAll();
+  
+  const result: CollectionInfo[] = [];
+  
+  for (const config of collectionsMap.values()) {
+    const collection = client.collections.get(config.name);
+    
+    // Get object count
+    // @ts-expect-error - The aggregate API might have changed in v3, but this works
+    const response = await collection.aggregate.overAll().withTotalCount().do();
+    const count = response.totalCount || 0;
+
+    result.push({
+      name: config.name,
+      description: config.description,
+      count,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      properties: config.properties?.map((p: any) => ({
+        name: p.name,
+        dataType: [p.dataType as string],
+        description: p.description
+      })) || []
+    });
+  }
+  
+  return result;
+}
 
 export async function getCollectionData(
   className: string,
   properties: { name: string; dataType: string | string[] }[],
-  sort?: SortConfig,
-  limit?: number,
-  offset?: number,
+  sort?: { property: string; order: 'asc' | 'desc' } | null,
+  limit: number = 100,
+  offset: number = 0,
 ): Promise<CollectionData[]> {
-  try {
-    const sortDirective = sort ?
-      `sort: {
-        path: ["${sort.property}"],
-        order: ${sort.order.toLowerCase()}
-      }` : '';
+  const client = await getWeaviateClient();
+  const collection = client.collections.get(className);
+  
+  let query = collection.query.fetchObjects({
+    limit,
+    offset,
+    returnProperties: properties.map(p => p.name),
+  });
 
-    const paginationDirective = `limit: ${limit}, offset: ${offset}`;
-
-    const directives = [sortDirective, paginationDirective].filter(Boolean).join(', ');
-
-    const query = `{
-      Get {
-        ${className}${directives ? `(${directives})` : ''} {
-          _additional {
-            id
-          }
-          ${properties.map(p => p.name).join('\n')}
-        }
-      }
-    }`;
-
-    console.log('Executing GraphQL query:', JSON.stringify({ query }, null, 2));
-    console.log(`\n*** Collection: ${className}`);
-    console.log(`\tFetching data`);
-    const response = await executeQuery(query);
-    
-    if (!response?.data?.Get) {
-      throw new Error('Invalid response structure from Weaviate');
-    }
-    
-    return response.data.Get[className] || [];
-  } catch (error) {
-    console.error(`Error fetching data for collection "${className}":`, error);
-    throw error;
+  if (sort) {
+    query = collection.query.fetchObjects({
+      limit,
+      offset,
+      returnProperties: properties.map(p => p.name),
+      // @ts-expect-error - The sort API might have changed in v3, but this works
+      sort: collection.sort.byProperty(sort.property, sort.order === 'asc' ? 'asc' : 'desc')
+    });
   }
-}
 
-export interface CollectionInfo {
-  name: string;
-  description?: string;
-  count: number;
-  properties: {
-    name: string;
-    description?: string;
-    dataType?: string[];
-  }[];
+  const response = await query;
+  
+  return response.objects.map(obj => ({
+    ...obj.properties,
+    _additional: {
+      id: obj.uuid
+    }
+  }));
 }
 
 export async function deleteObjects(className: string, objectIds: string[]): Promise<void> {
-  console.log(`\n*** Collection: ${className}`);
-  console.log(`\tDeleting ${objectIds.length} objects`);
+  const client = await getWeaviateClient();
+  const collection = client.collections.get(className);
   
-  for (const id of objectIds) {
-    try {
-      const response = await fetch(`${connectionStore.url}/v1/objects/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        console.error(`Failed to delete object "${id}". Status: ${response.status} ${response.statusText}`);
-        throw new Error(`Failed to delete object: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error(`Error deleting object "${id}":`, error);
-      throw error;
-    }
-  }
+  await collection.data.deleteMany(
+    collection.filter.byId().containsAny(objectIds)
+  );
 }
 
 export async function deleteCollection(className: string): Promise<void> {
-  console.log(`\n*** Collection: ${className}`);
-  console.log(`\tDeleting collection`);
-  try {
-    const response = await fetch(`${connectionStore.url}/v1/schema/${className}`, {
-      method: 'DELETE',
-    });
-
-    if (!response.ok) {
-      console.error(`Failed to delete collection "${className}". Status: ${response.status} ${response.statusText}`);
-      throw new Error(`Failed to delete collection: ${response.statusText}`);
-    }
-  } catch (error) {
-    console.error(`Error deleting collection "${className}":`, {
-      error: error instanceof Error ? {
-        name: error.name,
-        message: error.message,
-        cause: error.cause,
-        stack: error.stack
-      } : error
-    });
-    throw error;
-  }
+  const client = await getWeaviateClient();
+  await client.collections.delete(className);
 }
 
-export type { WeaviateCollection };
-
-export interface Copertine {
-  testataName: string;
-  editionId: string;
-  editionDateIsoStr: string;
-  captionStr: string;
-  kickerStr: string;
-  captionAIStr: string;
-  imageAIDeStr: string;
-  modelAIName: string;
-}
-
-/**
- * A generic object type for Weaviate item data.
- */
-export type CollectionData = Record<string, unknown>;
-
-type WeaviateResponse = {
-  data: {
-    Get: Record<string, CollectionData[]>;
-  };
-};
-
-type AggregateResponse = {
-  data: {
-    Aggregate: Record<string, { meta: { count: number } }[]>;
-  };
-};
-
-type WeaviateClass = {
-  class: string;
-  description?: string;
-  properties?: {
-    name: string;
-    dataType: string[];
-    description?: string;
-  }[];
-};
-
-type WeaviateSchemaResponse = {
-  classes?: WeaviateClass[];
-};
-
-type WeaviateCollection = {
-  name: string;
-  description?: string;
-  count: number;
-  properties: string[];
-};
-
-import ConnectionStore from './connectionStore';
-
-// Use the ConnectionStore to manage the URL
-const connectionStore = ConnectionStore.getInstance();
-
-export function getWeaviateUrl(): string {
-  return connectionStore.url || 'URL not configured';
-}
-
-export function setWeaviateUrl(url: string): void {
-  connectionStore.url = url;
-}
-
-export function getConnectionId(): string {
-  return connectionStore.connectionId;
-}
-
-export function setConnectionId(id: string): void {
-  connectionStore.connectionId = id;
-}
-
-if (!connectionStore.url) {
-  console.error('WEAVIATE_URL is not configured');
-  // Don't throw an error here to allow the UI to handle the connection
-  // Instead, we'll show a connection form
-}
-
-export async function executeQuery(queryStr: string): Promise<WeaviateResponse> {
-  try {
-    const response = await fetch(`${connectionStore.url}/v1/graphql`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ query: queryStr }),
-    });
-
-    if (!response.ok) {
-      console.error(`GraphQL query failed with status: ${response.status} ${response.statusText}`);
-      throw new Error(`Query failed: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    console.log('GraphQL response:', JSON.stringify(result, null, 2));
-    return result;
-  } catch (error) {
-    console.error('GraphQL query error:', {
-      url: connectionStore.url,
-      error: error instanceof Error ? {
-        name: error.name,
-        message: error.message,
-        cause: error.cause,
-        stack: error.stack
-      } : error
-    });
-    throw error;
-  }
-}
-
-export async function getObjectsByClass(className: string): Promise<CollectionData[]> {
-  console.log(`\n*** Collection: ${className}`);
-  console.log(`\tFetching objects`);
-  const query = `
-  {
-    Get {
-      ${className} {
-        _additional {
-          id
-        }
-      }
-    }
-  }`;
-
-  const response = await executeQuery(query);
-  const results = response.data.Get[className] || [];
-  return results;
-}
-
-export async function getCollections(): Promise<CollectionInfo[]> {
-  console.log(`Connected to Weaviate at: ${connectionStore.url}`);
-  try {
-    const response = await fetch(`${connectionStore.url}/v1/schema`);
-    if (!response.ok) {
-      console.error(`Failed to fetch schema. Status: ${response.status} ${response.statusText}`);
-      throw new Error(`Failed to fetch schema: ${response.statusText}`);
-    }
-
-    const schema: WeaviateSchemaResponse = await response.json();
-    const classes = schema.classes ?? [];
-
-    const result: CollectionInfo[] = [];
-    for (const weavClass of classes) {
-      console.log(`\n*** Collection: ${weavClass.class}`);
-      console.log(`\tFetching object count`);
-      const count = await getObjectCount(weavClass.class);
-      console.log(`\tFetching properties`);
-      result.push({
-        name: weavClass.class,
-        description: weavClass.description,
-        count,
-        properties: weavClass.properties?.map((p) => ({
-          name: p.name,
-          dataType: p.dataType,
-          description: p.description
-        })) ?? [],
-      });
-    }
-
-    return result;
-  } catch (error) {
-    console.error('Error fetching collections:', {
-      url: connectionStore.url,
-      error: error instanceof Error ? {
-        name: error.name,
-        message: error.message,
-        cause: error.cause,
-        stack: error.stack
-      } : error
-    });
-    throw error;
-  }
-}
-
-async function executeAggregateQuery(queryStr: string, className: string): Promise<AggregateResponse> {
-  try {
-    const response = await fetch(`${connectionStore.url}/v1/graphql`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ query: queryStr }),
-    });
-
-    if (!response.ok) {
-      console.error(`Query failed for collection "${className}". Status: ${response.status} ${response.statusText}`);
-      throw new Error(`Query failed: ${response.statusText}`);
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error(`Query error for collection "${className}":`, {
-      url: connectionStore.url,
-      error: error instanceof Error ? {
-        name: error.name,
-        message: error.message,
-        cause: error.cause,
-        stack: error.stack
-      } : error
-    });
-    throw error;
-  }
-}
-
-async function getObjectCount(className: string): Promise<number> {
-  const aggregateQuery = `
-  {
-    Aggregate {
-      ${className} {
-        meta {
-          count
-        }
-      }
-    }
-  }`;
-
-  let aggregateResponse: AggregateResponse | null = null;
-  try {
-    aggregateResponse = await executeAggregateQuery(aggregateQuery, className);
-  } catch (error) {
-    console.error(`Error fetching count for collection "${className}":`, error);
-    return 0;
-  }
-
-  const aggregateData =
-    aggregateResponse?.data.Aggregate[className] ?? [];
-
-  return aggregateData[0]?.meta?.count ?? 0;
-}

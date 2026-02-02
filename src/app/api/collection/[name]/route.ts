@@ -2,10 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCollections, getCollectionData, deleteCollection, deleteObjects } from '@/lib/weaviate';
 
-export type Copertine = {
- [key: string]: unknown;
-};
-
 export async function DELETE(request: NextRequest) {
   try {
     const url = new URL(request.url);

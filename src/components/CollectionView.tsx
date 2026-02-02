@@ -1,9 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { DynamicTable, ColumnDef } from '@/components/DynamicTable';
-import { CollectionData } from '@/lib/weaviate';
+import { DataTable } from '@/components/DataTable';
+import { CollectionData } from '@/lib/types';
 import { DeleteObjectsModal } from '@/components/DeleteObjectsModal';
+import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
+import { ArrowUpDown, Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface CollectionViewProps {
   collectionName: string;
@@ -20,13 +25,13 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<{ property: string; order: 'asc' | 'desc' } | null>(null);
-  const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [offset, setOffset] = useState(0);
   const [canLoadMore, setCanLoadMore] = useState(true);
   const topRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   const OBJECTS_PER_PAGE = 250;
 
@@ -89,34 +94,15 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
 
   useEffect(() => {
     fetchData(false);
-  }, [sortConfig]);
+  }, [sortConfig, fetchData]);
 
   const handleLoadMore = () => {
     fetchData(true);
   };
 
-  const handleSelect = (id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
   const handleDeleteClick = () => {
-    if (selectionMode) {
-      if (selectedIds.size > 0) {
-        setDeleteModalOpen(true);
-      } else {
-        // Exit selection mode if no items are selected
-        setSelectionMode(false);
-      }
-    } else {
-      setSelectionMode(true);
+    if (Object.keys(rowSelection).length > 0) {
+      setDeleteModalOpen(true);
     }
   };
 
@@ -129,7 +115,7 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          objectIds: Array.from(selectedIds)
+          objectIds: Object.keys(rowSelection)
         })
       });
 
@@ -137,22 +123,86 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
         const error = await response.json();
         throw new Error(error.details || error.error || 'Failed to delete objects');
       }
+      
+      toast({
+        title: "Objects deleted",
+        description: `Successfully deleted ${Object.keys(rowSelection).length} objects.`,
+      });
+
       setDeleteModalOpen(false);
-      setSelectionMode(false);
-      setSelectedIds(new Set());
+      setRowSelection({});
       await fetchData();
     } catch (err) {
       console.error('Error deleting objects:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete objects');
+      toast({
+        title: "Error",
+        description: "Failed to delete objects",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCancelSelection = () => {
-    setSelectionMode(false);
-    setSelectedIds(new Set());
+  const handleSort = (columnKey: string) => {
+    setSortConfig(current => {
+      if (current?.property === columnKey) {
+        if (current.order === 'desc') {
+          return { property: columnKey, order: 'asc' };
+        }
+        return null;
+      }
+      return { property: columnKey, order: 'desc' };
+    });
   };
+
+  const columns: ColumnDef<CollectionData>[] = [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    ...properties.map((prop): ColumnDef<CollectionData> => ({
+      accessorKey: prop.name,
+      header: () => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => handleSort(prop.name)}
+            className={prop.dataType.includes('date') ? "" : "cursor-default hover:bg-transparent"}
+          >
+            {prop.name}
+            {prop.dataType.includes('date') && <ArrowUpDown className="ml-2 h-4 w-4" />}
+          </Button>
+        )
+      },
+      cell: ({ row }) => {
+        const value = row.getValue(prop.name);
+        if (Array.isArray(value)) {
+          return value.join(', ');
+        }
+        if (typeof value === 'object' && value !== null) {
+          return JSON.stringify(value);
+        }
+        return String(value ?? '');
+      },
+    }))
+  ];
 
   if (error) {
     return (
@@ -162,7 +212,7 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
     );
   }
 
-  if (loading) {
+  if (loading && data.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
@@ -170,94 +220,45 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
     );
   }
 
-  const columns: ColumnDef[] = properties.map((prop) => ({
-    key: prop.name,
-    label: prop.name,
-    dataType: prop.dataType,
-    render: (value: unknown) => {
-      if (Array.isArray(value)) {
-        return value.join(', ');
-      }
-      return String(value);
-    },
-  }));
-
-  const handleSort = (columnKey: string) => {
-    const column = columns.find(col => col.key === columnKey);
-    if (!column?.dataType?.includes('date')) return;
-
-    setSortConfig(current => {
-      if (current?.property === columnKey) {
-        if (current.order === 'desc') {
-          return { property: columnKey, order: 'asc' };
-        }
-        return null;
-      }
-      return { property: columnKey, order: 'desc' }; // First click sorts descending
-    });
-  };
-
   return (
-    <div ref={topRef}>
-      <div className="mb-4 flex justify-between">
+    <div ref={topRef} className="space-y-4">
+      <div className="flex justify-between items-center">
         <div className="flex gap-2">
-          <button
-            onClick={handleDeleteClick}
-            className={`px-4 py-2 rounded-md text-white font-medium ${
-              selectionMode && selectedIds.size > 0
-                ? 'bg-red-600 hover:bg-red-700'
-                : 'bg-red-100 text-red-700 hover:bg-red-200'
-            }`}
-          >
-            Delete
-          </button>
-          {selectionMode && (
-            <button
-              onClick={handleCancelSelection}
-              className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+          {Object.keys(rowSelection).length > 0 && (
+            <Button
+              variant="destructive"
+              onClick={handleDeleteClick}
             >
-              Cancel
-            </button>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete ({Object.keys(rowSelection).length})
+            </Button>
           )}
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={scrollToBottom}
-            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
-          >
+          <Button variant="outline" onClick={scrollToBottom}>
             Bottom
-          </button>
+          </Button>
         </div>
       </div>
 
-      <DynamicTable 
-        data={data} 
+      <DataTable 
         columns={columns} 
-        onSort={handleSort}
-        sortConfig={sortConfig ? { 
-          key: sortConfig.property, 
-          direction: sortConfig.order 
-        } : null}
-        selectionMode={selectionMode}
-        selectedIds={selectedIds}
-        onSelect={handleSelect}
+        data={data} 
+        rowSelection={rowSelection}
+        setRowSelection={setRowSelection}
       />
 
       {canLoadMore && (
         <div ref={bottomRef} className="mt-4 flex justify-center items-center gap-4">
-          <button
+          <Button
             onClick={handleLoadMore}
             disabled={loadingMore}
-            className="px-6 py-2 rounded-md bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:bg-gray-400"
           >
             {loadingMore ? 'Loading...' : 'Load More'}
-          </button>
-          <button
-            onClick={scrollToTop}
-            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
-          >
+          </Button>
+          <Button variant="outline" onClick={scrollToTop}>
             Top
-          </button>
+          </Button>
         </div>
       )}
 
@@ -265,7 +266,7 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onDelete={handleDeleteConfirm}
-        selectedCount={selectedIds.size}
+        selectedCount={Object.keys(rowSelection).length}
       />
     </div>
   );

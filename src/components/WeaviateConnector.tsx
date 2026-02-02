@@ -2,6 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface WeaviateConnectorProps {
   initialUrl: string;
@@ -120,48 +126,59 @@ export function WeaviateConnector({ initialUrl }: WeaviateConnectorProps) {
   };
 
   return (
-    <div className="mb-6">
-      <div className="flex items-end gap-2">
-        <div className="flex-grow">
-          <label htmlFor="weaviate-url" className="block text-sm font-medium text-gray-700 mb-1">
-            Weaviate URL
-            <span className="ml-1 text-xs text-gray-500">(Use internal Docker port, e.g., http://weaviate2025:8080 not :8090)</span>
-          </label>
-          <input
-            type="text"
-            id="weaviate-url"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            value={url}
-            onChange={handleUrlChange}
-            onClick={handleInputClick}
-            placeholder="http://localhost:8080"
-          />
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle>Connection Settings</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-end gap-2">
+          <div className="flex-grow space-y-2">
+            <Label htmlFor="weaviate-url">
+              Weaviate URL
+              <span className="ml-1 text-xs text-muted-foreground">(Use internal Docker port, e.g., http://weaviate2025:8080 not :8090)</span>
+            </Label>
+            <Input
+              type="text"
+              id="weaviate-url"
+              value={url}
+              onChange={handleUrlChange}
+              onClick={handleInputClick}
+              placeholder="http://localhost:8080"
+            />
+          </div>
+          <Button
+            onClick={handleConnect}
+            disabled={connecting}
+          >
+            {connecting ? 'Connecting...' : 'Connect'}
+          </Button>
         </div>
-        <button
-          onClick={handleConnect}
-          disabled={connecting}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-        >
-          {connecting ? 'Connecting...' : 'Connect'}
-        </button>
-      </div>
-      
-      {error && (
-        <div className="mt-2 text-sm text-red-600">
-          {error}
-          {errorHint && (
-            <div className="mt-1 text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
-              <strong>Tip:</strong> {errorHint}
-            </div>
-          )}
-        </div>
-      )}
-      
-      {connectionStatus && !error && (
-        <div className="mt-2 text-sm text-green-600">
-          {connectionStatus}
-        </div>
-      )}
-    </div>
+        
+        {error && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              {error}
+              {errorHint && (
+                <div className="mt-1 text-xs bg-destructive/10 p-2 rounded">
+                  <strong>Tip:</strong> {errorHint}
+                </div>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {connectionStatus && !error && (
+          <Alert className="mt-4 border-green-500 text-green-700 bg-green-50">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertTitle>Success</AlertTitle>
+            <AlertDescription>
+              {connectionStatus}
+            </AlertDescription>
+          </Alert>
+        )}
+      </CardContent>
+    </Card>
   );
 }

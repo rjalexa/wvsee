@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getCollections, getConnectionId } from '@/lib/weaviate';
+import { getCollections } from '@/lib/weaviate';
+import { getConnectionId } from '@/lib/connection';
 
 export async function GET(request: Request) {
   // Add a cache-busting parameter based on the connection ID and current time

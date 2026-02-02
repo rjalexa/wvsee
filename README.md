@@ -22,9 +22,13 @@ A simple web interface to explore your local Weaviate collections and inspect th
 pnpm install
 ```
 
-2. Configure Weaviate URL in `.env`:
+2. Configure environment variables:
+   - Copy `.env.example` to `.env`
+   - Update the values:
 ```env
-WEAVIATE_URL=http://localhost:8080
+WEAVIATE_URL=http://localhost:8081
+WEAVIATE_API_KEY=your-api-key-here
+OBJECTS_PER_PAGE=250
 ```
 
 3. Start the development server:
@@ -38,60 +42,92 @@ The application will be available at http://localhost:3000
 
 1. Prerequisites:
    - Docker and Docker Compose installed
-   - A running Weaviate instance in Docker
-   - A Docker network for Weaviate communication
+   - A running Weaviate instance in Docker (e.g., `isagog-weaviate`)
+   - Access to the Weaviate Docker network (e.g., `isagog-internal`)
+   - Weaviate API key for authentication
 
-2. Configure `docker-compose.yml`:
-   - Update the network name to match your Weaviate network
-   - Adjust the Weaviate hostname if needed
-   - Modify port mapping if required (default: 3200:3000)
+2. Configure environment:
+   - Create a `.env` file in the project root (don't commit this!)
+   - Add your Weaviate API key:
+```env
+WEAVIATE_API_KEY=your-actual-api-key-here
+```
 
-Example docker-compose.yml configuration:
+3. Review `docker-compose.yml`:
+   The configuration is set up to connect to the `isagog-weaviate` container:
 ```yaml
 services:
-  copertine-viewer:
+  weaviate-viewer:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - WEAVIATE_URL=http://isagog-weaviate:8080
+    container_name: weaviate-viewer
     ports:
       - "3200:3000"
     environment:
       - NODE_ENV=production
-      - WEAVIATE_URL=http://weaviate:8080
+      - WEAVIATE_URL=http://isagog-weaviate:8080
+      - WEAVIATE_API_KEY=${WEAVIATE_API_KEY}
       - PORT=3000
     networks:
-      - weaviate_net
+      - isagog-internal
 
 networks:
-  weaviate_net:
+  isagog-internal:
     external: true
 ```
 
-3. Build and run:
+4. Build and run:
 ```bash
 docker compose build
 docker compose up -d
 ```
 
+5. Check logs:
+```bash
+docker compose logs -f weaviate-viewer
+```
+
 The application will be available at http://localhost:3200
+
+**Note**: The viewer connects to the Weaviate container using the internal Docker network, so it uses the container name `isagog-weaviate` as the hostname.
 
 ## Configuration
 
-### Weaviate Host Configuration
+### Weaviate Connection Configuration
 
-The application needs to know where your Weaviate instance is running:
+The application requires two main configuration settings:
 
-- **Local Development**: Configure via `.env` file
-  ```env
-  WEAVIATE_URL=http://localhost:8080
-  ```
+1. **Weaviate URL**: Where your Weaviate instance is running
+2. **API Key**: For authentication (if Weaviate has authentication enabled)
 
-- **Docker Deployment**: Configure via `docker-compose.yml`
-  ```yaml
-  environment:
-    - WEAVIATE_URL=http://weaviate:8080
-  ```
-  Note: When running in Docker, make sure to customize the hostname and network settings in docker-compose.yml to match your Weaviate setup.
+#### Local Development
+Configure via `.env` file:
+```env
+WEAVIATE_URL=http://localhost:8081
+WEAVIATE_API_KEY=your-api-key-here
+OBJECTS_PER_PAGE=250
+```
+
+#### Docker Deployment
+Configure via `.env` (for docker-compose) and `docker-compose.yml`:
+```env
+WEAVIATE_API_KEY=your-api-key-here
+```
+
+```yaml
+environment:
+  - WEAVIATE_URL=http://isagog-weaviate:8080
+  - WEAVIATE_API_KEY=${WEAVIATE_API_KEY}
+```
+
+**Important Notes**:
+- When running in Docker, use the Weaviate **container name** as the hostname (e.g., `isagog-weaviate`)
+- Ensure the viewer is on the same Docker network as Weaviate (e.g., `isagog-internal`)
+- The API key is read from the `.env` file and passed to the container via docker-compose
+- Never commit your `.env` file with actual credentials to version control
 
 ## Contributing
 

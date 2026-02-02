@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { CollectionsList } from './CollectionsList';
-import { CollectionInfo, getConnectionId } from '@/lib/weaviate';
+import { CollectionInfo } from '@/lib/types';
+import { getConnectionId } from '@/lib/connection';
 import { useRouter } from 'next/navigation';
 
 interface CollectionsWrapperProps {

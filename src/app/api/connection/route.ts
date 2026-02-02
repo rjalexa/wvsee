@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { setWeaviateUrl, setConnectionId, getConnectionId } from '@/lib/weaviate';
+import { setWeaviateUrl, setConnectionId, getConnectionId } from '@/lib/connection';
 import ConnectionStore from '@/lib/connectionStore';
 
 export async function POST(request: NextRequest) {
