@@ -117,6 +117,12 @@ export async function getCollectionData(
   const client = await getWeaviateClient();
   const collection = client.collections.get(className);
 
+  console.log(`Fetching collection data for: ${className}`, {
+    limit,
+    offset,
+    properties: properties.map(p => p.name),
+  });
+
   // In Weaviate v3, fetchObjects returns all properties by default
   // Sort is not fully supported in the same way - for now, fetch without sort
   const response = await collection.query.fetchObjects({
@@ -124,12 +130,24 @@ export async function getCollectionData(
     offset,
   });
 
-  return response.objects.map(obj => ({
+  console.log(`Received response for ${className}:`, {
+    objectCount: response.objects?.length || 0,
+    firstObject: response.objects?.[0],
+  });
+
+  const result = response.objects.map(obj => ({
     ...obj.properties,
     _additional: {
       id: obj.uuid
     }
   }));
+
+  console.log(`Mapped result for ${className}:`, {
+    resultCount: result.length,
+    firstResult: result[0],
+  });
+
+  return result;
 }
 
 export async function deleteObjects(className: string, objectIds: string[]): Promise<void> {

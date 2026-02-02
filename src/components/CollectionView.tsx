@@ -70,7 +70,7 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
       }
 
       const newData = result.data || [];
-      
+
       setData(prevData => loadMore ? [...prevData, ...newData] : newData);
       setOffset(currentOffset + newData.length);
       setCanLoadMore(newData.length === OBJECTS_PER_PAGE);
@@ -94,7 +94,8 @@ export function CollectionView({ collectionName, properties }: CollectionViewPro
 
   useEffect(() => {
     fetchData(false);
-  }, [sortConfig, fetchData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collectionName, sortConfig]);
 
   const handleLoadMore = () => {
     fetchData(true);
